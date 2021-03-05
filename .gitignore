@@ -1,3 +1,6 @@
 .vscode/
 vevn/
 __pycache__/
+
+
+constants.py

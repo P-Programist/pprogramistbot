@@ -48,7 +48,7 @@ class MainMenu(object):
         )
 
         about_company = InlineKeyboardButton(
-            text=self.SPEECH["about_company" + lang],
+            text=self.SPEECH["about_company_btn" + lang],
             callback_data='about_company'
         )
 
@@ -67,13 +67,31 @@ class MainMenu(object):
         return self.markup
 
 
+    async def step_back(self):
+        lang = await redworker.get_data(chat=self.chat_id)
+
+        markup = InlineKeyboardMarkup(row_width=2)
+
+        back = InlineKeyboardButton(
+            text=SPEECH["back" + lang],
+            callback_data='back'
+        )
+
+        markup.add(back)
+
+        return markup
+
+
 class Departments(object):
     """docstring for Departments."""
-    def __init__(self):
+    def __init__(self, chat_id):
         super(Departments, self).__init__()
+        self.chat_id = chat_id
         self.markup = InlineKeyboardMarkup(row_width=1)
 
-    def departments_buttons(self):
+    async def departments_buttons(self, back=False):
+        lang = await redworker.get_data(chat=self.chat_id)
+
         python = InlineKeyboardButton(
             text='Python 🐍',
             callback_data='python'
@@ -94,10 +112,19 @@ class Departments(object):
             callback_data='java'
         )
 
+        back_btn = InlineKeyboardButton(
+            text=SPEECH["back" + lang],
+            callback_data='back_to_menu'
+        )
+
+
         self.markup.add(
             python, sys_admin,
-            javascript, java
+            javascript, java,
         )
+
+        if back:
+            self.markup.add(back_btn)
 
         return self.markup
 

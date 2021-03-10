@@ -23,16 +23,7 @@ async def increment_at_reception(call, model):
             request = await session.execute(applies)
 
             clicks = request.scalars().first()
-        if clicks is None:
-            session.add(
-                model(
-                    apply=0, about_courses=0,
-                    about_company=0, vacancies=0,
-                    news=0
-                )
-            )
-            await session.commit()
-        else:
+
             # We can update values by passing them as a dictionary
             incrementation = update(model).values({call.data: clicks+1})
             await session.execute(incrementation)

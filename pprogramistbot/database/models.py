@@ -14,9 +14,16 @@ from sqlalchemy.sql.expression import insert
 
 # Local application imports
 from database.settings import engine
-
+from configs.constants import (
+    PYTHON_INFO_TEXT_RU, PYTHON_INFO_TEXT_KG,
+    SYS_ADMIN_INFO_TEXT_RU, SYS_ADMIN_INFO_TEXT_KG,
+    JAVASCRIPT_INFO_TEXT_RU, JAVASCRIPT_INFO_TEXT_KG,
+    JAVA_INFO_TEXT_RU, JAVA_INFO_TEXT_KG,
+    ABOUT_COMPANY_RU, ABOUT_COMPANY_KG
+)
 
 Base = declarative_base()
+
 
 class BaseModel(Base):
     __abstract__ = True
@@ -87,6 +94,11 @@ class Reception(BaseModel):
         default=1
     )
 
+    about_company = Column(
+        Text,
+        nullable=False,
+        comment='The general information about company'
+    )
 
     def __repr__(self):
         return "<{0.__class__.__name__}(id={0.id!r})>".format(self)
@@ -109,7 +121,6 @@ class Department(BaseModel):
 
     def __repr__(self):
         return self.department_name
-
 
 
 class Customer(BaseModel):
@@ -146,12 +157,12 @@ class Customer(BaseModel):
     )
 
     department_name = Column(
-        String, 
+        String,
         ForeignKey('department.department_name')
     )
 
     department = relationship(
-        "Department", 
+        "Department",
         back_populates="customers"
     )
 
@@ -163,12 +174,12 @@ class Course(BaseModel):
     __tablename__ = 'course'
 
     department_id = Column(
-        Integer, 
+        Integer,
         ForeignKey('department.id')
     )
 
     department = relationship(
-        "Department", 
+        "Department",
         back_populates="courses"
     )
 
@@ -192,12 +203,12 @@ class Vacancy(BaseModel):
     )
 
     department_id = Column(
-        Integer, 
+        Integer,
         ForeignKey('department.id')
     )
 
     department = relationship(
-        "Department", 
+        "Department",
         back_populates="vacancies"
     )
 
@@ -221,12 +232,12 @@ class News(BaseModel):
     __tablename__ = 'news'
 
     department_id = Column(
-        Integer, 
+        Integer,
         ForeignKey('department.id')
     )
 
     department = relationship(
-        "Department", 
+        "Department",
         back_populates="news"
     )
 
@@ -260,11 +271,11 @@ if __name__ == "__main__":
             await connection.run_sync(Base.metadata.drop_all)
             await connection.run_sync(Base.metadata.create_all)
 
-
         async with AsyncSession(engine, expire_on_commit=False) as session:
             async with session.begin():
                 python = Department(id=1, department_name='Python')
-                sys_admin = Department(id=2, department_name='System Administrator')
+                sys_admin = Department(
+                    id=2, department_name='System Administrator')
                 javascript = Department(id=3, department_name='Javascript')
                 java = Department(id=4, department_name='Java')
 
@@ -276,57 +287,36 @@ if __name__ == "__main__":
                         java
                     ]
                 )
+
+            about_company = Reception(
+                apply=0, about_courses=0,
+                about_company=0, vacancies=0,
+                news=0, about_company=ABOUT_COMPANY_RU
+            )
+
             python_info = insert(Course).values(
                 {
-                    "department_info": '''*Длительность:* 4️⃣ месяца
-*Стоимость:* 150$ / за месяц 🤏
-*Программа обучения:* 
-    Месяц 1: *Английский + Математика + Linux*
-    Месяц 2: *Знакомство с синтаксисом языка Python*
-    Месяц 3: *Углубленное изучения языка + Базы Данных*
-    Месяц 4: *Изучения фрэймворка Django*
-    
-*Дополнительная информация:*
-    Во время изучения языка программирования(ЯП) Python вы также получаете:
-    1. Изучение необходимых библиотек относящихся к ЯП Python 😱😱😱
-    2. Изучение нескольких Баз Данных 🧐
-    3. Возможность научиться создавать Telegram боты 🤖
-    4. Изучить вёрстку на HTML+CSS 👩‍🎤🧑‍🎤
-    5. Возможность работать на оплачиваемых проектах 🤑
-    6. Участие в локальных Хакатонах 🏆
-    7. Коворкинг и новые знакомства 🧍‍♀️🧍🐼🦉👽
-    8. Многое многое другое... 🤤😍🤩
-
-''',
-                "department_id": python.id
-                    }
+                    "department_info": PYTHON_INFO_TEXT_RU,
+                    "department_id": python.id
+                }
             )
-            sys_admin = insert(Course).values(
+            sys_admin_info = insert(Course).values(
                 {
-                    "department_info": '''*Длительность:* 4️⃣ месяца
-*Стоимость:* 140$ / за месяц 🤏
-*Программа обучения:* 
-    Месяц 1: *Английский + Математика + Linux*
-    Месяц 2: *Знакомство с синтаксисом языка Python*
-    Месяц 3: *Углубленное изучения языка + Базы Данных*
-    Месяц 4: *Изучения фрэймворка Django*
-    
-*Дополнительная информация:*
-    Во время изучения языка программирования(ЯП) Python вы также получаете:
-    1. Изучение необходимых библиотек относящихся к ЯП Python 😱😱😱
-    2. Изучение нескольких Баз Данных 🧐
-    3. Возможность научиться создавать Telegram боты 🤖
-    4. Изучить вёрстку на HTML+CSS 👩‍🎤🧑‍🎤
-    5. Возможность работать на оплачиваемых проектах 🤑
-    6. Участие в локальных Хакатонах 🏆
-    7. Коворкинг и новые знакомства 🧍‍♀️🧍🐼🦉👽
-    8. Многое многое другое... 🤤😍🤩
-
-''',
-                "department_id": sys_admin.id
-                    }
+                    "department_info": SYS_ADMIN_INFO_TEXT_RU,
+                    "department_id": sys_admin.id
+                }
             )
+            javascript_info = insert(Course).values(
+                {
+                    "department_info": JAVASCRIPT_INFO_TEXT_RU,
+                    "department_id": javascript.id
+                }
+            )
+
+            await session.execute(about_company)
             await session.execute(python_info)
+            await session.execute(sys_admin_info)
+            await session.execute(javascript_info)
             await session.commit()
 
     asyncio.run(recreate_database())

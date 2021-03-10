@@ -63,10 +63,8 @@ async def send_main_menu(call: CallbackQuery):
 
     await call.message.edit_text(
         text=constants.SPEECH["main_menu" + lang],
+        reply_markup=await MainMenu(chat_id).main_menu_buttons(),
         parse_mode=ParseMode.MARKDOWN
-    )
-    await call.message.edit_reply_markup(
-        reply_markup=await MainMenu(chat_id).main_menu_buttons()
     )
 
     return await states.BotStates.main_menu.set()
@@ -89,11 +87,8 @@ async def reception(call: CallbackQuery):
         if call.data == 'apply':
             await call.message.edit_text(
                 text=constants.SPEECH["choose_course" + lang],
+                reply_markup=await Departments(chat_id).departments_buttons(back=True),
                 parse_mode=ParseMode.MARKDOWN
-            )
-
-            await call.message.edit_reply_markup(
-                reply_markup=Departments().departments_buttons()
             )
 
             return await states.BotStates.apply_for_course.set()
@@ -102,44 +97,30 @@ async def reception(call: CallbackQuery):
         if call.data == 'about_courses':
             await call.message.edit_text(
                 text=constants.SPEECH["choose_course" + lang],
+                reply_markup=await Departments(chat_id).departments_buttons(back=True),
                 parse_mode=ParseMode.MARKDOWN
-            )
-
-            await call.message.edit_reply_markup(
-                reply_markup=Departments().departments_buttons()
             )
 
             return await states.BotStates.know_about_corses.set()
 
         if call.data == 'about_company':
+            reception_id = getattr(Reception, 'id')
+
+            reception = await subfunctions.object_exists(reception_id, 1, Reception)
+
             await call.message.edit_text(
-                text=constants.SPEECH["choose_course" + lang],
+                text=reception.about_company,
+                reply_markup=await MainMenu(chat_id).step_back(),
                 parse_mode=ParseMode.MARKDOWN
             )
 
-            return await call.message.edit_reply_markup(
-                reply_markup=Departments().departments_buttons()
-            )
+            return await states.BotStates.know_about_corses.set()
 
         if call.data == 'vacancies':
-            await call.message.edit_text(
-                text=constants.SPEECH["choose_course" + lang],
-                parse_mode=ParseMode.MARKDOWN
-            )
-
-            return await call.message.edit_reply_markup(
-                reply_markup=Departments().departments_buttons()
-            )
+            pass
 
         if call.data == 'news':
-            await call.message.edit_text(
-                text=constants.SPEECH["choose_course" + lang],
-                parse_mode=ParseMode.MARKDOWN
-            )
-
-            return await call.message.edit_reply_markup(
-                reply_markup=Departments().departments_buttons()
-            )
+            pass
 
 
 @dp.callback_query_handler(state=states.BotStates.apply_for_course)
@@ -155,9 +136,20 @@ async def set_time_for_course(call: CallbackQuery):
     if call.data:
 
         chat_id = call.message.chat.id
+        lang = await redworker.get_data(chat=call.message.chat.id)
+
+        # If User pressed "Back" button - return him to main menu
+        if call.data == 'back_to_menu':
+            await call.message.edit_text(
+                text=constants.SPEECH["main_menu" + lang],
+                reply_markup=await MainMenu(chat_id).main_menu_buttons(),
+                parse_mode=ParseMode.MARKDOWN
+            )
+
+            return await states.BotStates.main_menu.set()
+
         attr = getattr(Customer, 'chat_id')
         user = await subfunctions.object_exists(attr, chat_id, Customer)
-        lang = await redworker.get_data(chat=call.message.chat.id)
 
         if user:
             if user.phone:
@@ -275,6 +267,26 @@ async def send_information_about_course(call: CallbackQuery):
     chat_id = call.message.chat.id
     lang = await redworker.get_data(chat=chat_id)
 
+    # The condition works when User clicked to the BACK button in the main menu
+    if call.data == 'back_to_menu':
+        await call.message.edit_text(
+            text=constants.SPEECH["main_menu" + lang],
+            reply_markup=await MainMenu(chat_id).main_menu_buttons(),
+            parse_mode=ParseMode.MARKDOWN
+        )
+
+        return await states.BotStates.main_menu.set()
+
+    # The condition works when User clicked to the BACK button from Departments
+    elif call.data == 'back':
+        await call.message.edit_text(
+            text=constants.SPEECH["choose_course" + lang],
+            reply_markup=await Departments(chat_id).departments_buttons(back=True),
+            parse_mode=ParseMode.MARKDOWN
+        )
+
+        return await states.BotStates.know_about_corses.set()
+
     if call.data:
         # Get an attrubute of Department model
         dp_field = getattr(Department, 'department_name')
@@ -290,7 +302,6 @@ async def send_information_about_course(call: CallbackQuery):
     
         # Here might be an ERROR in case if database will be empty
         # Retrieve course object from database by "department_id"
-
         course = await subfunctions.object_exists(course_field, dp.id, Course)
 
         if not course:
@@ -304,10 +315,11 @@ async def send_information_about_course(call: CallbackQuery):
         
         await call.message.edit_text(
                 text=course.department_info,
+                reply_markup=await MainMenu(chat_id).step_back(),
                 parse_mode=ParseMode.MARKDOWN
             )
 
-        return await states.BotStates.main_menu.set()
+        return await states.BotStates.know_about_corses.set()
 
 
 

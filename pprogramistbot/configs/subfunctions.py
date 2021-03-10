@@ -27,7 +27,7 @@ async def increment_at_reception(call, model):
             # We can update values by passing them as a dictionary
             incrementation = update(model).values({call.data: clicks+1})
             await session.execute(incrementation)
-            await session.commit()
+            
 
 
 

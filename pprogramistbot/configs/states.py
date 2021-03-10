@@ -9,3 +9,4 @@ class BotStates(StatesGroup):
     confirm_number_for_applying = State()
 
     know_about_corses = State()
+    read_about_company_text = State()

@@ -109,12 +109,13 @@ async def reception(call: CallbackQuery):
             reception = await subfunctions.object_exists(reception_id, 1, Reception)
 
             await call.message.edit_text(
-                text=reception.about_company,
+                text=reception.about_company_text,
                 reply_markup=await MainMenu(chat_id).step_back(),
                 parse_mode=ParseMode.MARKDOWN
             )
 
-            return await states.BotStates.know_about_corses.set()
+            return await states.BotStates.read_about_company_text.set()
+
 
         if call.data == 'vacancies':
             pass
@@ -322,6 +323,20 @@ async def send_information_about_course(call: CallbackQuery):
         return await states.BotStates.know_about_corses.set()
 
 
+@dp.callback_query_handler(state=states.BotStates.read_about_company_text)
+async def read_about_company(call: CallbackQuery):
+    chat_id = call.message.chat.id
+    lang = await redworker.get_data(chat=chat_id)
+
+    # If User pressed "Back" button - return him to main menu
+    if call.data:
+        await call.message.edit_text(
+            text=constants.SPEECH["main_menu" + lang],
+            reply_markup=await MainMenu(chat_id).main_menu_buttons(),
+            parse_mode=ParseMode.MARKDOWN
+        )
+
+        return await states.BotStates.main_menu.set()
 
 if __name__ == "__main__":
     executor.start_polling(

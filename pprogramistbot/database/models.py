@@ -94,7 +94,7 @@ class Reception(BaseModel):
         default=1
     )
 
-    about_company = Column(
+    about_company_text = Column(
         Text,
         nullable=False,
         comment='The general information about company'
@@ -278,9 +278,13 @@ if __name__ == "__main__":
                     id=2, department_name='System Administrator')
                 javascript = Department(id=3, department_name='Javascript')
                 java = Department(id=4, department_name='Java')
-
+                about = Reception(
+                    apply=0, about_courses=0,
+                    about_company=0, vacancies=0,
+                    news=0, about_company_text=ABOUT_COMPANY_RU
+                )
                 session.add_all(
-                    [
+                    [   about,
                         python,
                         sys_admin,
                         javascript,
@@ -288,11 +292,7 @@ if __name__ == "__main__":
                     ]
                 )
 
-            about_company = Reception(
-                apply=0, about_courses=0,
-                about_company=0, vacancies=0,
-                news=0, about_company=ABOUT_COMPANY_RU
-            )
+            
 
             python_info = insert(Course).values(
                 {
@@ -313,7 +313,6 @@ if __name__ == "__main__":
                 }
             )
 
-            await session.execute(about_company)
             await session.execute(python_info)
             await session.execute(sys_admin_info)
             await session.execute(javascript_info)

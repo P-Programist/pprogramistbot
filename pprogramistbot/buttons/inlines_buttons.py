@@ -1,5 +1,6 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from configs.constants import SPEECH_KG, SPEECH_RU
+from configs.constants import SPEECH
+from configs.core import redworker
 
 class Languages(object):
     """Languages class is responsible for generating buttons for choosing language."""
@@ -25,39 +26,39 @@ class Languages(object):
 
 class MainMenu(object):
     """docstring for MainMenu."""
-    def __init__(self, lang):
+    def __init__(self, chat_id):
         super(MainMenu, self).__init__()
         self.markup = InlineKeyboardMarkup(row_width=2)
 
-        if lang == 'ru':
-            self.SPEECH = SPEECH_RU
-        else:
-            self.SPEECH = SPEECH_KG
+        self.chat_id = chat_id
+        self.SPEECH = SPEECH
 
 
-    def main_menu_buttons(self):
+    async def main_menu_buttons(self):
+        lang = await redworker.get_data(chat=self.chat_id)
+
         apply_btn = InlineKeyboardButton(
-            text=self.SPEECH["apply"],
+            text=self.SPEECH["apply" + lang],
             callback_data='apply'
         )
 
         about_courses = InlineKeyboardButton(
-            text=self.SPEECH["about_courses"],
+            text=self.SPEECH["about_courses" + lang],
             callback_data='about_courses'
         )
 
         about_company = InlineKeyboardButton(
-            text=self.SPEECH["about_company"],
+            text=self.SPEECH["about_company" + lang],
             callback_data='about_company'
         )
 
         vacancies = InlineKeyboardButton(
-            text=self.SPEECH["vacancies"],
+            text=self.SPEECH["vacancies" + lang],
             callback_data='vacancies'
         )
 
         news = InlineKeyboardButton(
-            text=self.SPEECH["news"],
+            text=self.SPEECH["news" + lang],
             callback_data='news'
         )
 
@@ -74,22 +75,22 @@ class Departments(object):
 
     def departments_buttons(self):
         python = InlineKeyboardButton(
-            text='Python',
+            text='Python 🐍',
             callback_data='python'
         )
         
         sys_admin = InlineKeyboardButton(
-            text='Системный администратор',
-            callback_data='sys_admin'
+            text='Системный администратор ⚙️',
+            callback_data='system_administrator'
         )
 
         javascript = InlineKeyboardButton(
-            text='JavaScript',
+            text='JavaScript 👨‍🎨',
             callback_data='javascript'
         )
 
         java = InlineKeyboardButton(
-            text='Java',
+            text='Java ⚒',
             callback_data='java'
         )
 
@@ -99,3 +100,31 @@ class Departments(object):
         )
 
         return self.markup
+
+
+class GroupTime(object):
+    """docstring for GroupTime."""
+    def __init__(self, chat_id):
+        super(GroupTime, self).__init__()
+
+        self.chat_id = chat_id
+        self.markup = InlineKeyboardMarkup(row_width=2)
+
+
+    async def group_time_buttons(self):
+        lang = await redworker.get_data(chat=self.chat_id)
+
+        morning = InlineKeyboardButton(
+            text=SPEECH["morning_group" + lang],
+            callback_data=0
+        )
+
+        evening = InlineKeyboardButton(
+            text=SPEECH["evening_group" + lang],
+            callback_data=1
+        )
+
+        self.markup.add(morning, evening)
+
+        return self.markup
+        

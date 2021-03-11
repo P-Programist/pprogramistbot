@@ -10,3 +10,17 @@ class BotStates(StatesGroup):
 
     know_about_corses = State()
     read_about_company_text = State()
+
+    vacancy_categories = State()
+    company_vacancies = State()
+    local_vacancies = State()
+    foreign_vacancies = State()
+
+    applied_for_vacancy = State()
+    full_name_for_vacancy = State()
+    cover_letter = State()
+    github_link = State()
+    confirm_number_for_vacancy = State()
+    complete_vacancy_application = State()
+
+    read_news = State()

@@ -1,32 +1,33 @@
 # Standard library imports
 
 # Third party imports
+from ast import parse
 from aiogram import executor
 from aiogram.bot import Bot
 from aiogram.dispatcher import Dispatcher
-from aiogram.types import Message, CallbackQuery, ParseMode, message
+from aiogram.types import Message, CallbackQuery, ParseMode
 import asyncio
 import uvloop
 
 # Local application imports
 from buttons.inlines_buttons import (
     Languages, MainMenu, Departments,
-    GroupTime
+    GroupTime, ActiveVacancies
 )
 from buttons.text_buttons import (
     ConfirmNumber
 )
 from configs import constants, states, subfunctions
 from configs.core import redworker, storage
-from database.models import Course, Customer, Reception, Department
+from database.models import Course, Customer, Reception, Department, Vacancy, VacancyApplicants
 
 
 uvloop.install()
 loop = asyncio.get_event_loop()
 
-bot = Bot(constants.PPROGRAMISTBOT_TOKEN,loop=loop)
+bot = Bot(constants.PPROGRAMISTBOT_TOKEN, loop=loop)
 
-dp = Dispatcher(bot=bot,loop=loop, storage=storage)
+dp = Dispatcher(bot=bot, loop=loop, storage=storage)
 
 
 @dp.message_handler(commands=['start'], state='*')
@@ -43,7 +44,6 @@ async def start(message: Message):
     )
 
     return await states.BotStates.set_language.set()
-
 
 
 @dp.callback_query_handler(state=states.BotStates.set_language)
@@ -70,7 +70,9 @@ async def send_main_menu(call: CallbackQuery):
     return await states.BotStates.main_menu.set()
 
 
-
+############################################################
+######################## RECEPTION #########################
+############################################################
 @dp.callback_query_handler(state=states.BotStates.main_menu)
 async def reception(call: CallbackQuery):
     '''
@@ -82,7 +84,7 @@ async def reception(call: CallbackQuery):
     lang = await redworker.get_data(chat=chat_id)
 
     if call.data:
-        await subfunctions.increment_at_reception(call, Reception)
+        await subfunctions.increment_at_reception(Reception, call)
 
         if call.data == 'apply':
             await call.message.edit_text(
@@ -92,7 +94,6 @@ async def reception(call: CallbackQuery):
             )
 
             return await states.BotStates.apply_for_course.set()
-
 
         if call.data == 'about_courses':
             await call.message.edit_text(
@@ -106,7 +107,7 @@ async def reception(call: CallbackQuery):
         if call.data == 'about_company':
             reception_id = getattr(Reception, 'id')
 
-            reception = await subfunctions.object_exists(reception_id, 1, Reception)
+            reception = await subfunctions.object_exists(Reception, reception_id, 1)
 
             await call.message.edit_text(
                 text=reception.about_company_text,
@@ -116,14 +117,31 @@ async def reception(call: CallbackQuery):
 
             return await states.BotStates.read_about_company_text.set()
 
-
         if call.data == 'vacancies':
-            pass
+            await call.message.edit_text(
+                text=constants.SPEECH["vacancy_category" + lang],
+                reply_markup=await ActiveVacancies(chat_id).vacancies(),
+                parse_mode=ParseMode.MARKDOWN
+            )
+
+            return await states.BotStates.vacancy_categories.set()
 
         if call.data == 'news':
-            pass
+            await call.message.edit_text(
+                text=constants.SPEECH["not_found" + lang],
+                reply_markup=await MainMenu(chat_id).step_back(),
+                parse_mode=ParseMode.MARKDOWN
+            )
+
+            return await states.BotStates.read_news.set()
+############################################################
+###################### END RECEPTION #######################
+############################################################
 
 
+############################################################
+####################### APPLICATION ########################
+############################################################
 @dp.callback_query_handler(state=states.BotStates.apply_for_course)
 async def set_time_for_course(call: CallbackQuery):
     '''
@@ -150,17 +168,21 @@ async def set_time_for_course(call: CallbackQuery):
             return await states.BotStates.main_menu.set()
 
         attr = getattr(Customer, 'chat_id')
-        user = await subfunctions.object_exists(attr, chat_id, Customer)
+        user = await subfunctions.object_exists(Customer, attr, chat_id)
 
         if user:
             if user.phone:
                 # If we find the User in database - that means he already applied for the last 3 days
-                f_name, dp_name  = user.first_name, user.department_name
+                f_name, dp_name = user.first_name, user.department_name
 
                 await call.message.edit_text(
-                    text=constants.SPEECH["already_applied" + lang].replace('fn', f_name).replace('dp', dp_name),
+                    text=constants.SPEECH["already_applied" +
+                                          lang].replace('fn', f_name).replace('dp', dp_name),
                     parse_mode=ParseMode.MARKDOWN
                 )
+
+                await asyncio.sleep(1.5)
+
                 await call.message.answer(
                     text=constants.SPEECH["main_menu" + lang],
                     reply_markup=await MainMenu(chat_id).main_menu_buttons(),
@@ -181,13 +203,22 @@ async def set_time_for_course(call: CallbackQuery):
                 The function below is located in "configs.subfunctions" module.
                 This function is responsible for operating user's applications for courses.
             '''
-            await subfunctions.accept_application(Customer, call)
+            department_name = ' '.join(call.data.split('_')).title()
+
+            data = {
+                "chat_id": chat_id,
+                "first_name": call.from_user.first_name,
+                "last_name": call.from_user.last_name if call.from_user.last_name is not None else 'Unknown',
+                "department_name": department_name
+            }
+
+            await subfunctions.insert_object(Customer, data, call)
 
             await call.message.edit_text(
-                    text=constants.SPEECH["choose_group_time" + lang],
-                    reply_markup=await GroupTime(chat_id).group_time_buttons(),
-                    parse_mode=ParseMode.MARKDOWN
-                )
+                text=constants.SPEECH["choose_group_time" + lang],
+                reply_markup=await GroupTime(chat_id).group_time_buttons(),
+                parse_mode=ParseMode.MARKDOWN
+            )
 
             return await states.BotStates.set_course_time.set()
 
@@ -199,8 +230,10 @@ async def confirm_number_to_apply(call: CallbackQuery):
 
     if call.data and call.data.isdigit():
         attr = getattr(Customer, 'chat_id')
-        user = await subfunctions.object_exists(attr, chat_id, Customer)
-        await subfunctions.update_object(Customer, user.id, {"time": int(call.data)})
+        user = await subfunctions.object_exists(Customer, attr, chat_id)
+        user_id = getattr(Customer, 'id')
+
+        await subfunctions.update_object(Customer, user_id, user.id, {"time": int(call.data)})
 
         await call.message.edit_text(
             text=constants.SPEECH["confirm_to_apply" + lang],
@@ -216,7 +249,6 @@ async def confirm_number_to_apply(call: CallbackQuery):
         return await states.BotStates.confirm_number_for_applying.set()
 
 
-
 @dp.message_handler(content_types=['text', 'contact'], state=states.BotStates.confirm_number_for_applying)
 async def complete_applying(message: Message):
     chat_id = message.chat.id
@@ -224,16 +256,17 @@ async def complete_applying(message: Message):
 
     if message.contact:
         attr = getattr(Customer, 'chat_id')
-        user = await subfunctions.object_exists(attr, chat_id, Customer)
+        user = await subfunctions.object_exists(Customer, attr, chat_id)
+        user_id = getattr(Customer, 'id')
 
         # In case if there will be some symbols other than digits we need to filter them
-        await subfunctions.update_object(Customer, user.id, {
+        await subfunctions.update_object(Customer, user_id, user.id, {
             "phone": int(
-                            ''.join(
-                                [i for i in message.contact.phone_number if i.isdigit()]
-                            )
-                    )
-            }
+                ''.join(
+                    [i for i in message.contact.phone_number if i.isdigit()]
+                )
+            )
+        }
         )
 
         await message.answer(
@@ -261,8 +294,14 @@ async def complete_applying(message: Message):
         )
 
         return await states.BotStates.confirm_number_for_applying.set()
+############################################################
+##################### END APPLICATION ######################
+############################################################
 
 
+############################################################
+###################### ABOUT COURSES #######################
+############################################################
 @dp.callback_query_handler(state=states.BotStates.know_about_corses)
 async def send_information_about_course(call: CallbackQuery):
     chat_id = call.message.chat.id
@@ -295,15 +334,15 @@ async def send_information_about_course(call: CallbackQuery):
         # Edit callback_data into database value
         dp_name = ' '.join(call.data.split('_')).title()
 
-        # Retrieve department object from database by "department_name" 
-        dp = await subfunctions.object_exists(dp_field, dp_name, Department)
+        # Retrieve department object from database by "department_name"
+        dp = await subfunctions.object_exists(Department, dp_field, dp_name)
 
         # Get an attrubute of Course model
         course_field = getattr(Course, 'department_id')
-    
+
         # Here might be an ERROR in case if database will be empty
         # Retrieve course object from database by "department_id"
-        course = await subfunctions.object_exists(course_field, dp.id, Course)
+        course = await subfunctions.object_exists(Course, course_field, dp.id)
 
         if not course:
             await call.message.edit_text(
@@ -313,16 +352,22 @@ async def send_information_about_course(call: CallbackQuery):
             )
 
             return await states.BotStates.main_menu.set()
-        
+
         await call.message.edit_text(
-                text=course.department_info,
-                reply_markup=await MainMenu(chat_id).step_back(),
-                parse_mode=ParseMode.MARKDOWN
-            )
+            text=course.department_info,
+            reply_markup=await MainMenu(chat_id).step_back(),
+            parse_mode=ParseMode.MARKDOWN
+        )
 
         return await states.BotStates.know_about_corses.set()
+############################################################
+#################### END ABOUT COURSES #####################
+############################################################
 
 
+############################################################
+###################### ABOUT COMPANY #######################
+############################################################
 @dp.callback_query_handler(state=states.BotStates.read_about_company_text)
 async def read_about_company(call: CallbackQuery):
     chat_id = call.message.chat.id
@@ -330,6 +375,212 @@ async def read_about_company(call: CallbackQuery):
 
     # If User pressed "Back" button - return him to main menu
     if call.data:
+        await call.message.edit_text(
+            text=constants.SPEECH["main_menu" + lang],
+            reply_markup=await MainMenu(chat_id).main_menu_buttons(),
+            parse_mode=ParseMode.MARKDOWN
+        )
+
+        return await states.BotStates.main_menu.set()
+############################################################
+#################### END ABOUT COMPANY #####################
+############################################################
+
+
+############################################################
+######################## VACANCIES #########################
+############################################################
+@dp.callback_query_handler(state=states.BotStates.vacancy_categories)
+async def vacancy_list(call: CallbackQuery):
+    chat_id = call.message.chat.id
+    lang = await redworker.get_data(chat=chat_id)
+
+    if call.data == 'back_to_menu':
+        await call.message.edit_text(
+            text=constants.SPEECH["main_menu" + lang],
+            reply_markup=await MainMenu(chat_id).main_menu_buttons(),
+            parse_mode=ParseMode.MARKDOWN
+        )
+
+        return await states.BotStates.main_menu.set()
+
+    vacancies_list = await subfunctions.extract_vacancies(call)
+
+    if not vacancies_list:
+        await call.message.answer(
+            text=constants.SPEECH["not_found" + lang],
+            parse_mode=ParseMode.MARKDOWN
+        )
+
+        return await states.BotStates.vacancy_categories.set()
+
+    await call.message.delete_reply_markup()
+
+    async for text, button in vacancies_list:
+        await call.message.answer(
+            text=text,
+            reply_markup=button,
+            parse_mode=ParseMode.MARKDOWN
+        )
+    else:
+        await call.message.answer(
+            text=constants.SPEECH["back_to_vacancies" + lang],
+            reply_markup=await MainMenu(chat_id).step_back(),
+            parse_mode=ParseMode.MARKDOWN
+        )
+
+        return await states.BotStates.local_vacancies.set()
+
+
+@dp.callback_query_handler(state=states.BotStates.local_vacancies)
+async def vacancies_list_provided(call: CallbackQuery):
+    chat_id = call.message.chat.id
+    lang = await redworker.get_data(chat=chat_id)
+
+    if call.data == 'back':
+        await call.message.edit_text(
+            text=constants.SPEECH["vacancy_category" + lang],
+            reply_markup=await ActiveVacancies(chat_id).vacancies(),
+            parse_mode=ParseMode.MARKDOWN
+        )
+
+        return await states.BotStates.vacancy_categories.set()
+
+    chat_id_attr = getattr(VacancyApplicants, 'chat_id')
+    applicant = await subfunctions.object_exists(VacancyApplicants, chat_id_attr, chat_id)
+
+    if applicant:
+        if applicant.phone_number:
+            await call.message.answer(
+                text=constants.SPEECH["already_applied_for_vacancy" + lang],
+                parse_mode=ParseMode.MARKDOWN
+            )
+
+            await asyncio.sleep(1.5)
+
+            await call.message.answer(
+                text=constants.SPEECH["main_menu" + lang],
+                reply_markup=await MainMenu(chat_id).main_menu_buttons(),
+                parse_mode=ParseMode.MARKDOWN
+            )
+
+            return await states.BotStates.main_menu.set()
+    
+    data = {
+        "vacancy_id": int(call.data),
+        "chat_id": chat_id,
+    }
+
+    await subfunctions.insert_object(VacancyApplicants, data, call)
+
+    await call.message.answer(
+        text=constants.SPEECH["tell_me_full_name" + lang],
+        parse_mode=ParseMode.MARKDOWN
+    )
+    
+    return await states.BotStates.full_name_for_vacancy.set()
+
+
+@dp.message_handler(content_types=['text'], state=states.BotStates.full_name_for_vacancy)
+async def ask_fullname_for_vacancy(message: Message):
+    chat_id = message.chat.id
+    lang = await redworker.get_data(chat=chat_id)
+
+    chat_id_attr = getattr(VacancyApplicants, 'chat_id')
+    await subfunctions.update_object(VacancyApplicants, chat_id_attr, chat_id, {"full_name": message.text})
+
+    await message.answer(
+        text=constants.SPEECH["cover_letter" + lang],
+        parse_mode=ParseMode.MARKDOWN
+    )
+
+    return await states.BotStates.cover_letter.set()
+
+
+@dp.message_handler(content_types=['text'], state=states.BotStates.cover_letter)
+async def ask_cover_letter_for_vacancy(message: Message):
+    chat_id = message.chat.id
+    lang = await redworker.get_data(chat=chat_id)
+
+    chat_id_attr = getattr(VacancyApplicants, 'chat_id')
+    await subfunctions.update_object(VacancyApplicants, chat_id_attr, chat_id, {"cover_letter": message.text})
+
+    await message.answer(
+        text=constants.SPEECH["provide_github" + lang],
+        parse_mode=ParseMode.MARKDOWN
+    )
+
+    return await states.BotStates.github_link.set()
+
+
+@dp.message_handler(content_types=['text'], state=states.BotStates.github_link)
+async def ask_github_link_for_vacancy(message: Message):
+    chat_id = message.chat.id
+    lang = await redworker.get_data(chat=chat_id)
+
+    chat_id_attr = getattr(VacancyApplicants, 'chat_id')
+    await subfunctions.update_object(VacancyApplicants, chat_id_attr, chat_id, {"github_link": message.text})
+
+    await message.answer(
+        text=constants.SPEECH["confirm_to_apply" + lang],
+        reply_markup=await ConfirmNumber(chat_id).confirm_number(),
+        parse_mode=ParseMode.MARKDOWN
+    )
+
+    return await states.BotStates.confirm_number_for_vacancy.set()
+
+
+@dp.message_handler(content_types=['text', 'contact'], state=states.BotStates.confirm_number_for_vacancy)
+async def complete_vacancy_applying(message: Message):
+    chat_id = message.chat.id
+    lang = await redworker.get_data(chat=chat_id)
+
+    if message.contact:
+        chat_id_attr = getattr(VacancyApplicants, 'chat_id')
+        await subfunctions.update_object(VacancyApplicants, chat_id_attr, chat_id, {"phone_number": int(
+                    ''.join(
+                        [i for i in message.contact.phone_number if i.isdigit()]
+                    )
+                )
+            }
+        )
+
+        await message.answer(
+            text=constants.SPEECH["apllication_accepted" + lang],
+            parse_mode=ParseMode.MARKDOWN
+        )
+
+        await asyncio.sleep(1.7)
+
+        await message.answer(
+            text=constants.SPEECH["main_menu" + lang],
+            reply_markup=MainMenu(chat_id).main_menu_buttons(),
+            parse_mode=ParseMode.MARKDOWN
+        )
+
+        return await states.BotStates.main_menu.set()
+
+    
+    await message.answer(
+        text=constants.SPEECH["confirm_to_apply" + lang],
+        reply_markup=await ConfirmNumber(chat_id).confirm_number(),
+        parse_mode=ParseMode.MARKDOWN
+    )
+
+    return await states.BotStates.confirm_number_for_vacancy.set()
+    
+
+############################################################
+###################### END VACANCIES #######################
+############################################################
+
+
+@dp.callback_query_handler(state=states.BotStates.read_news)
+async def news_category(call: CallbackQuery):
+    chat_id = call.message.chat.id
+    lang = await redworker.get_data(chat=chat_id)
+
+    if call.data == 'back':
         await call.message.edit_text(
             text=constants.SPEECH["main_menu" + lang],
             reply_markup=await MainMenu(chat_id).main_menu_buttons(),

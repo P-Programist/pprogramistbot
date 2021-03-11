@@ -2,6 +2,7 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from configs.constants import SPEECH
 from configs.core import redworker
 
+
 class Languages(object):
     """Languages class is responsible for generating buttons for choosing language."""
     def __init__(self):
@@ -31,34 +32,33 @@ class MainMenu(object):
         self.markup = InlineKeyboardMarkup(row_width=2)
 
         self.chat_id = chat_id
-        self.SPEECH = SPEECH
 
 
     async def main_menu_buttons(self):
         lang = await redworker.get_data(chat=self.chat_id)
 
         apply_btn = InlineKeyboardButton(
-            text=self.SPEECH["apply" + lang],
+            text=SPEECH["apply" + lang],
             callback_data='apply'
         )
 
         about_courses = InlineKeyboardButton(
-            text=self.SPEECH["about_courses" + lang],
+            text=SPEECH["about_courses" + lang],
             callback_data='about_courses'
         )
 
         about_company = InlineKeyboardButton(
-            text=self.SPEECH["about_company_btn" + lang],
+            text=SPEECH["about_company_btn" + lang],
             callback_data='about_company'
         )
 
         vacancies = InlineKeyboardButton(
-            text=self.SPEECH["vacancies" + lang],
+            text=SPEECH["vacancies" + lang],
             callback_data='vacancies'
         )
 
         news = InlineKeyboardButton(
-            text=self.SPEECH["news" + lang],
+            text=SPEECH["news" + lang],
             callback_data='news'
         )
 
@@ -154,4 +154,57 @@ class GroupTime(object):
         self.markup.add(morning, evening)
 
         return self.markup
-        
+
+
+
+class ActiveVacancies(object):
+    def __init__(self, chat_id):
+        super(ActiveVacancies, self).__init__()
+        self.chat_id = chat_id
+            
+
+    async def vacancies(self):
+        markup = InlineKeyboardMarkup(row_width=1)
+        lang = await redworker.get_data(chat=self.chat_id)
+
+        company = InlineKeyboardButton(
+            text=SPEECH["company_vacancies" + lang],
+            callback_data='company'
+        )
+
+
+        city = InlineKeyboardButton(
+            text=SPEECH["city_vacancies" + lang],
+            callback_data='city'
+        )
+
+        foreign = InlineKeyboardButton(
+            text=SPEECH["foreign_vacancies" + lang],
+            callback_data='foreign'
+        )
+
+        back_btn = InlineKeyboardButton(
+            text=SPEECH["back" + lang],
+            callback_data='back_to_menu'
+        )
+
+        markup.add(
+            company, city, 
+            foreign, back_btn
+        )
+
+        return markup
+
+
+    async def apply_for_vacancy(self, vacancy_id):
+        markup = InlineKeyboardMarkup(row_width=1)
+        lang = await redworker.get_data(chat=self.chat_id)
+
+        apply = InlineKeyboardButton(
+            text=SPEECH["apply_for_vacancy" + lang],
+            callback_data=vacancy_id
+        )
+
+        markup.add(apply)
+
+        return markup

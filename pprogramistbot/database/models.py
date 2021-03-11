@@ -116,7 +116,6 @@ class Department(BaseModel):
 
     customers = relationship('Customer', back_populates='department')
     courses = relationship('Course', back_populates='department')
-    vacancies = relationship('Vacancy', back_populates='department')
     news = relationship('News', back_populates='department')
 
     def __repr__(self):
@@ -158,7 +157,8 @@ class Customer(BaseModel):
 
     department_name = Column(
         String,
-        ForeignKey('department.department_name')
+        ForeignKey('department.department_name'),
+        nullable=False
     )
 
     department = relationship(
@@ -175,7 +175,8 @@ class Course(BaseModel):
 
     department_id = Column(
         Integer,
-        ForeignKey('department.id')
+        ForeignKey('department.id'),
+        nullable=False
     )
 
     department = relationship(
@@ -199,33 +200,86 @@ class Vacancy(BaseModel):
     vacancy_type = Column(
         SmallInteger,
         nullable=False,
-        comment='If VACANCY_TYPE = 1 it means that vacancy provided by P-Programist, otherwise the vacancy provided by another resource'
+        comment='If VACANCY_TYPE = 0 it means that vacancy provided by P-Programist, otherwise the vacancy provided by another resource'
     )
 
-    department_id = Column(
-        Integer,
-        ForeignKey('department.id')
-    )
-
-    department = relationship(
-        "Department",
-        back_populates="vacancies"
-    )
-
-    vacancy_label = Column(
+    position = Column(
         String,
         nullable=False,
         comment='The header of vacancy'
     )
 
-    vacancy_info = Column(
+    time = Column(
+        String,
+        nullable=False,
+        comment='The time of lesson'
+    )
+
+    salary = Column(
+        String,
+        nullable=False,
+        comment='The salary of a mentor'
+    )
+
+    details = Column(
         Text,
         nullable=False,
         comment='These are the details of vacancy'
     )
 
+    # This line is binded with the VACANCY field in VacancyApplicants class.
+    applicants = relationship('VacancyApplicants', back_populates='vacancy')
+
     def __repr__(self):
-        return f'{self.department.department_name} - {self.vacancy_label}'
+        return f'{self.position}'
+
+
+class VacancyApplicants(BaseModel):
+    __tablename__ = 'vacancy_applicants'
+
+    vacancy_id = Column(
+        Integer,
+        ForeignKey('vacancy.id'),
+        nullable=False
+    )
+
+    vacancy = relationship(
+        "Vacancy",
+        back_populates="applicants"
+    )
+
+    chat_id = Column(
+        Integer,
+        nullable=False,
+        comment='The chat id of User who applied for vacancy'
+    )
+
+    full_name = Column(
+        String,
+        nullable=True,
+        comment='The full name of applicant'
+    )
+
+    cover_letter = Column(
+        Text,
+        nullable=True,
+        comment='This cover letter has to be written in order to see applicants\'s interests'
+    )
+
+    github_link = Column(
+        String,
+        nullable=True,
+        comment='A GitHub link to check applicant\'s experience'
+    )
+
+    phone_number = Column(
+        BigInteger,
+        nullable=True,
+        comment='The contact number of applicant'
+    )
+
+    def __repr__(self):
+        return f'{self.full_name} - {self.phone_number}'
 
 
 class News(BaseModel):
@@ -233,7 +287,8 @@ class News(BaseModel):
 
     department_id = Column(
         Integer,
-        ForeignKey('department.id')
+        ForeignKey('department.id'),
+        nullable=False
     )
 
     department = relationship(
@@ -284,15 +339,13 @@ if __name__ == "__main__":
                     news=0, about_company_text=ABOUT_COMPANY_RU
                 )
                 session.add_all(
-                    [   about,
+                    [about,
                         python,
                         sys_admin,
                         javascript,
                         java
-                    ]
+                     ]
                 )
-
-            
 
             python_info = insert(Course).values(
                 {
@@ -313,9 +366,35 @@ if __name__ == "__main__":
                 }
             )
 
+            sys_admin_vacancy = insert(Vacancy).values(
+                {
+                    "vacancy_type": 0,
+                    "position": "*М-Ментор на курс `Системный Администратор`*",
+                    "time": "Договорный",
+                    "salary": "*350 - 450 $*",
+                    "details": '''Требования:
+
+    ✅ Чёткое понимание и возможность объяснить зачем нужна эта должность
+    ✅ Опыт администрирования операционных систем Linux и Windows Server
+    ✅ Английский - Pre-Intermediate | Intermediate
+    ✅ Основы стека TCP/IP
+    ✅ Умение использовать ActiveDirectory, DNS, DHCP
+    ✅ Знание и понимание протоколов (FTP, SSH, SMTP, POP3, SAMBA)
+    ✅ Знание любового скриптового ЯП
+    ✅ Навыки работы с СУБД приветствуется
+    ✅ Комерческий опыт работы от 1-2х лет
+
+
+Обязанности:
+    ⚜️ Разработка и поддержка учебного плана
+    ⚜️ Обучение студентов, проведение занятий'''
+                }
+            )
+
             await session.execute(python_info)
             await session.execute(sys_admin_info)
             await session.execute(javascript_info)
+            await session.execute(sys_admin_vacancy)
             await session.commit()
 
     asyncio.run(recreate_database())

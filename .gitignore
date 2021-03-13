@@ -1,0 +1,9 @@
+.vscode/
+vevn/
+__pycache__/
+static/
+
+constants.py
+Dockerfile
+
+*.drawio

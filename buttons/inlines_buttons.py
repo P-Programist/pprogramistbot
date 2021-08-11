@@ -16,7 +16,7 @@ class Languages(object):
         )
 
         kg_btn = InlineKeyboardButton(
-            'Кыргызча 🇰🇬',
+            'English 🇱🇷',
             callback_data='kg'
         )
 

@@ -1,7 +1,7 @@
-.vscode/
-vevn/
-__pycache__/
-static/
+.vscode
+vevn
+__pycache__
+static
 
 constants.py
 Dockerfile

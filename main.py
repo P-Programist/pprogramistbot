@@ -45,7 +45,7 @@ async def start(message: Message):
     """
 
     await message.answer(
-        text=constants.SPEECH["choose_language_ru"],
+        text='%s | %s' % (constants.SPEECH["choose_language_ru"], constants.SPEECH["choose_language_kg"]),
         reply_markup=Languages().lang_buttons(),
         parse_mode=ParseMode.MARKDOWN,
     )

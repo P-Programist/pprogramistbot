@@ -71,14 +71,10 @@ async def send_main_menu(call: CallbackQuery):
 
     lang = await redworker.get_data(chat=chat_id)
 
-    if str(chat_id) in student_vr:
-        true_false = True
-    else:
-        true_false = False
 
     await call.message.edit_text(
         text=constants.SPEECH["main_menu" + lang],
-        reply_markup=await MainMenu(chat_id).main_menu_buttons(true_false),
+        reply_markup=await MainMenu(chat_id).main_menu_buttons(True if str(chat_id) in student_vr else False),
         parse_mode=ParseMode.MARKDOWN,
     )
 
@@ -179,7 +175,7 @@ async def set_time_for_course(call: CallbackQuery):
         if call.data == "back_to_menu":
             await call.message.edit_text(
                 text=constants.SPEECH["main_menu" + lang],
-                reply_markup=await MainMenu(chat_id).main_menu_buttons(),
+                reply_markup=await MainMenu(chat_id).main_menu_buttons(True if str(chat_id) in student_vr else False),
                 parse_mode=ParseMode.MARKDOWN,
             )
 
@@ -204,7 +200,7 @@ async def set_time_for_course(call: CallbackQuery):
 
                 await call.message.answer(
                     text=constants.SPEECH["main_menu" + lang],
-                    reply_markup=await MainMenu(chat_id).main_menu_buttons(),
+                    reply_markup=await MainMenu(chat_id).main_menu_buttons(True if str(chat_id) in student_vr else False),
                     parse_mode=ParseMode.MARKDOWN,
                 )
 
@@ -307,7 +303,7 @@ async def complete_applying(message: Message):
 
         await message.answer(
             text=constants.SPEECH["main_menu" + lang],
-            reply_markup=await MainMenu(chat_id).main_menu_buttons(),
+            reply_markup=await MainMenu(chat_id).main_menu_buttons(True if str(chat_id) in student_vr else False),
             parse_mode=ParseMode.MARKDOWN,
         )
 
@@ -339,7 +335,7 @@ async def send_information_about_course(call: CallbackQuery):
     if call.data == "back_to_menu":
         await call.message.edit_text(
             text=constants.SPEECH["main_menu" + lang],
-            reply_markup=await MainMenu(chat_id).main_menu_buttons(),
+            reply_markup=await MainMenu(chat_id).main_menu_buttons(True if str(chat_id) in student_vr else False),
             parse_mode=ParseMode.MARKDOWN,
         )
 
@@ -375,7 +371,7 @@ async def send_information_about_course(call: CallbackQuery):
         if not course:
             await call.message.edit_text(
                 text=constants.SPEECH["course_under_development" + lang],
-                reply_markup=await MainMenu(chat_id).main_menu_buttons(),
+                reply_markup=await MainMenu(chat_id).main_menu_buttons(True if str(chat_id) in student_vr else False),
                 parse_mode=ParseMode.MARKDOWN,
             )
 
@@ -407,7 +403,7 @@ async def read_about_company(call: CallbackQuery):
     if call.data:
         await call.message.edit_text(
             text=constants.SPEECH["main_menu" + lang],
-            reply_markup=await MainMenu(chat_id).main_menu_buttons(),
+            reply_markup=await MainMenu(chat_id).main_menu_buttons(True if str(chat_id) in student_vr else False),
             parse_mode=ParseMode.MARKDOWN,
         )
 
@@ -430,7 +426,7 @@ async def vacancy_list(call: CallbackQuery):
     if call.data == "back_to_menu":
         await call.message.edit_text(
             text=constants.SPEECH["main_menu" + lang],
-            reply_markup=await MainMenu(chat_id).main_menu_buttons(),
+            reply_markup=await MainMenu(chat_id).main_menu_buttons(True if str(chat_id) in student_vr else False),
             parse_mode=ParseMode.MARKDOWN,
         )
 
@@ -491,7 +487,7 @@ async def vacancies_list_provided(call: CallbackQuery):
 
             await call.message.answer(
                 text=constants.SPEECH["main_menu" + lang],
-                reply_markup=await MainMenu(chat_id).main_menu_buttons(),
+                reply_markup=await MainMenu(chat_id).main_menu_buttons(True if str(chat_id) in student_vr else False),
                 parse_mode=ParseMode.MARKDOWN,
             )
 
@@ -599,7 +595,7 @@ async def complete_vacancy_applying(message: Message):
 
         await message.answer(
             text=constants.SPEECH["main_menu" + lang],
-            reply_markup=await MainMenu(chat_id).main_menu_buttons(),
+            reply_markup=await MainMenu(chat_id).main_menu_buttons(True if str(chat_id) in student_vr else False),
             parse_mode=ParseMode.MARKDOWN,
         )
 
@@ -636,13 +632,9 @@ async def check_group(call: CallbackQuery):
             parse_mode=ParseMode.MARKDOWN,
         )
     elif call.data == "back":
-        if str(chat_id) in student_vr:
-            true_false = True
-        else:
-            true_false = False
         await call.message.edit_text(
             text=constants.SPEECH["main_menu" + lang],
-            reply_markup=await MainMenu(chat_id).main_menu_buttons(true_false),
+            reply_markup=await MainMenu(chat_id).main_menu_buttons(True if str(chat_id) in student_vr else False),
             parse_mode=ParseMode.MARKDOWN,
         )
 
@@ -674,13 +666,10 @@ async def ask_github_link_for_vacancy(message: Message):
     lang = await redworker.get_data(chat=chat_id)
 
     print(message.text)
-    if str(chat_id) in student_vr:
-            true_false = True
-    else:
-        true_false = False
+
     await message.answer(
         text=constants.SPEECH["main_menu" + lang],
-        reply_markup=await MainMenu(chat_id).main_menu_buttons(true_false),
+        reply_markup=await MainMenu(chat_id).main_menu_buttons(True if str(chat_id) in student_vr else False),
         parse_mode=ParseMode.MARKDOWN,
     )
     return await states.BotStates.main_menu.set()

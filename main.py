@@ -4,7 +4,7 @@
 from aiogram import executor
 from aiogram.bot import Bot
 from aiogram.dispatcher import Dispatcher
-from aiogram.types import Message, CallbackQuery, ParseMode
+from aiogram.types import Message, CallbackQuery, ParseMode, message
 import asyncio
 import uvloop
 
@@ -15,6 +15,8 @@ from buttons.inlines_buttons import (
     Departments,
     GroupTime,
     ActiveVacancies,
+    Departments_type,
+    Group_time_fb,
 )
 from buttons.text_buttons import ConfirmNumber
 from configs import constants, states, subfunctions
@@ -28,6 +30,7 @@ from database.models import (
     VacancyApplicants,
 )
 
+student_vr = ('1624089338')
 
 uvloop.install()
 loop = asyncio.get_event_loop()
@@ -42,7 +45,7 @@ async def start(message: Message):
     """
     The first function that the User interacts with.
     After the User pressed the /start command - he will be offered to choose a language for interaction.
-    """
+    """ 
 
     await message.answer(
         text=constants.SPEECH["choose_language_ru"],
@@ -68,9 +71,14 @@ async def send_main_menu(call: CallbackQuery):
 
     lang = await redworker.get_data(chat=chat_id)
 
+    if str(chat_id) in student_vr:
+        true_false = True
+    else:
+        true_false = False
+
     await call.message.edit_text(
         text=constants.SPEECH["main_menu" + lang],
-        reply_markup=await MainMenu(chat_id).main_menu_buttons(),
+        reply_markup=await MainMenu(chat_id).main_menu_buttons(true_false),
         parse_mode=ParseMode.MARKDOWN,
     )
 
@@ -136,11 +144,11 @@ async def reception(call: CallbackQuery):
         if call.data == "news":
             await call.message.edit_text(
                 # text=constants.SPEECH["not_found" + lang],
-                text=constants.type_racer,
-                reply_markup=await MainMenu(chat_id).step_back(),
+                text=constants.SPEECH["changes" + lang],
+                reply_markup=await Departments_type(chat_id).departments_buttons(),
                 parse_mode=ParseMode.MARKDOWN,
             )
-
+            
             return await states.BotStates.read_news.set()
 
 
@@ -610,21 +618,72 @@ async def complete_vacancy_applying(message: Message):
 ###################### END VACANCIES #######################
 ############################################################
 
-
 @dp.callback_query_handler(state=states.BotStates.read_news)
-async def news_category(call: CallbackQuery):
+async def check_group(call: CallbackQuery):
     chat_id = call.message.chat.id
     lang = await redworker.get_data(chat=chat_id)
 
-    if call.data == "back":
+    if call.data == "python2":
+        await call.message.edit_text(
+            text=constants.SPEECH["changes_time" + lang],
+            reply_markup=await Group_time_fb(chat_id).group_times(),
+            parse_mode=ParseMode.MARKDOWN,
+        )
+    elif call.data == "javascript2":
+        await call.message.edit_text(
+            text=constants.SPEECH["changes_time" + lang],
+            reply_markup=await Group_time_fb(chat_id).group_times(),
+            parse_mode=ParseMode.MARKDOWN,
+        )
+    elif call.data == "back":
+        if str(chat_id) in student_vr:
+            true_false = True
+        else:
+            true_false = False
         await call.message.edit_text(
             text=constants.SPEECH["main_menu" + lang],
-            reply_markup=await MainMenu(chat_id).main_menu_buttons(),
+            reply_markup=await MainMenu(chat_id).main_menu_buttons(true_false),
             parse_mode=ParseMode.MARKDOWN,
         )
 
         return await states.BotStates.main_menu.set()
+    return await states.BotStates.choose_times.set()
 
 
+@dp.callback_query_handler(state=states.BotStates.choose_times)
+async def choose_times_gr(call: CallbackQuery):
+    chat_id = call.message.chat.id
+    lang = await redworker.get_data(chat=chat_id)
+
+    if call.data == "0":
+        await call.message.edit_text(
+            text=constants.SPEECH["feedback" + lang],
+            parse_mode=ParseMode.MARKDOWN,
+        )
+    elif call.data == "1":
+        await call.message.edit_text(
+            text=constants.SPEECH["feedback" + lang],
+            parse_mode=ParseMode.MARKDOWN,
+        )
+
+    return await states.BotStates.feedback_text.set()
+
+@dp.message_handler(content_types=["text"], state=states.BotStates.feedback_text)
+async def ask_github_link_for_vacancy(message: Message):
+    chat_id = message.chat.id
+    lang = await redworker.get_data(chat=chat_id)
+
+    print(message.text)
+    if str(chat_id) in student_vr:
+            true_false = True
+    else:
+        true_false = False
+    await message.answer(
+        text=constants.SPEECH["main_menu" + lang],
+        reply_markup=await MainMenu(chat_id).main_menu_buttons(true_false),
+        parse_mode=ParseMode.MARKDOWN,
+    )
+    return await states.BotStates.main_menu.set()
+    
 if __name__ == "__main__":
     executor.start_polling(dispatcher=dp, loop=loop)

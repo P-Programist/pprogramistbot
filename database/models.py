@@ -10,10 +10,12 @@ from sqlalchemy import (
 )
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
+from sqlalchemy.sql.elements import Null
 from sqlalchemy.sql.expression import insert
 
 # Local application imports
 from database.settings import engine
+
 from configs.constants import (
     PYTHON_INFO_TEXT_RU, PYTHON_INFO_TEXT_KG,
     SYS_ADMIN_INFO_TEXT_RU, SYS_ADMIN_INFO_TEXT_KG,
@@ -310,6 +312,44 @@ class News(BaseModel):
 
     def __repr__(self):
         return f'{self.department.department_name} - {self.news_label}'
+
+class Feedback(BaseModel):
+    __tablename__ = 'Feedback'
+
+    telegram_id = Column(
+        Integer,
+        nullable=False
+    )
+
+    department_id = Column(
+        Integer,
+        nullable=False
+    )
+
+    groups = Column(
+        Integer,
+        nullable=False
+    )
+
+    first_name = Column(
+        String,
+        nullable=True,
+        default= Null
+    )
+
+    last_name = Column(
+        String,
+        nullable=True,
+        default= Null
+    )
+
+    feedback = Column(
+        String,
+        nullable=False
+    )
+
+    def __repr__(self):
+        return f'{self.groups} - {self.first_name}'
 
 
 if __name__ == "__main__":

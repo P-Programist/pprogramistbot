@@ -34,7 +34,7 @@ class MainMenu(object):
         self.chat_id = chat_id
 
 
-    async def main_menu_buttons(self):
+    async def main_menu_buttons(self, shows):
         lang = await redworker.get_data(chat=self.chat_id)
 
         apply_btn = InlineKeyboardButton(
@@ -62,7 +62,9 @@ class MainMenu(object):
             callback_data='news'
         )
 
-        self.markup.add(apply_btn, about_courses, about_company, vacancies, news)
+        self.markup.add(apply_btn, about_courses, about_company, vacancies)
+        if shows == True:
+            self.markup.add(news)
 
         return self.markup
 
@@ -208,3 +210,63 @@ class ActiveVacancies(object):
         markup.add(apply)
 
         return markup
+
+class Departments_type(object):
+    """docstring for Departments_type."""
+    def __init__(self, chat_id):
+        super(Departments_type, self).__init__()
+        self.chat_id = chat_id
+        self.markup = InlineKeyboardMarkup(row_width=2)
+
+    async def departments_buttons(self, back=False):
+        lang = await redworker.get_data(chat=self.chat_id)
+
+        python = InlineKeyboardButton(
+            text='Python 🐍',
+            callback_data='python2'
+        )
+        
+        javascript = InlineKeyboardButton(
+            text='JavaScript 👨‍🎨',
+            callback_data='javascript2'
+        )
+
+        back = InlineKeyboardButton(
+            text=SPEECH["back" + lang],
+            callback_data='back'
+        )
+
+        self.markup.add(python, javascript, back)
+
+
+        return self.markup
+
+class Group_time_fb(object):
+    """docstring for Group_time_fb."""
+    def __init__(self, chat_id):
+        super(Group_time_fb, self).__init__()
+        self.chat_id = chat_id
+        self.markup = InlineKeyboardMarkup(row_width=2)
+
+    async def group_times(self, back=False):
+        lang = await redworker.get_data(chat=self.chat_id)
+
+        morning = InlineKeyboardButton(
+            text=SPEECH["morning_group" + lang],
+            callback_data=0
+        )
+
+        evening = InlineKeyboardButton(
+            text=SPEECH["evening_group" + lang],
+            callback_data=1
+        )
+
+        back = InlineKeyboardButton(
+            text=SPEECH["back" + lang],
+            callback_data='back'
+        )
+
+        self.markup.add(morning, evening, back)
+
+
+        return self.markup

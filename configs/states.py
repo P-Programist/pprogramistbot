@@ -24,3 +24,5 @@ class BotStates(StatesGroup):
     complete_vacancy_application = State()
 
     read_news = State()
+    choose_times = State()
+    feedback_text = State()

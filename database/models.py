@@ -234,6 +234,49 @@ class Vacancy(BaseModel):
         return f'{self.position}'
 
 
+class BishkekVacancy(BaseModel):
+    __tablename__ = 'bishkek_vacancy'
+
+    header = Column(
+        String,
+        nullable=False,
+        comment='The name of vacancy'
+    )
+
+    company_name = Column(
+        String,
+        nullable=False,
+        comment='The name of company'
+    )
+
+    required_experience = Column(
+        String,
+        nullable=False,
+        comment='Required work experience'
+    )
+
+    salary = Column(
+        String,
+        nullable=False,
+        comment='The salary of a worker'
+    )
+
+    schedule = Column(
+        String,
+        nullable=False,
+        comment='The schedule of a work'
+    )
+
+    details = Column(
+        Text,
+        nullable=False,
+        comment='These are the description of vacancy'
+    )
+
+    def __repr__(self):
+        return f'{self.header}'
+
+
 class VacancyApplicants(BaseModel):
     __tablename__ = 'vacancy_applicants'
 
@@ -329,8 +372,7 @@ if __name__ == "__main__":
         async with AsyncSession(engine, expire_on_commit=False) as session:
             async with session.begin():
                 python = Department(id=1, department_name='Python')
-                sys_admin = Department(
-                    id=2, department_name='System Administrator')
+                sys_admin = Department(id=2, department_name='System Administrator')
                 javascript = Department(id=3, department_name='Javascript')
                 java = Department(id=4, department_name='Java')
                 about = Reception(
@@ -398,7 +440,3 @@ if __name__ == "__main__":
             await session.commit()
 
     asyncio.run(recreate_database())
-
-
-
-

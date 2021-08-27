@@ -1,6 +1,8 @@
-from urllib3 import poolmanager
 import ssl
+import re
 import requests
+import asyncio
+from urllib3 import poolmanager
 from bs4 import BeautifulSoup as BS
 
 
@@ -62,11 +64,19 @@ class Scraper:
                 'a', class_='title-')
             address = [i.div.text.replace('\xa0', ' ').split('\n')[
                 2] for i in get_all]
-            salary = [i.div.b.text.replace('\xa0', ' ') for i in get_all]
+            salary = []
+            for i in get_all:
+                if not i.div.b:
+                    salary.append('No data')
+                else:
+                    salary.append(i.div.b.text.replace('\xa0', ' '))
             headers = [i.text.replace('\xa0', ' ').split('\n')[
                 15].strip() for i in get_all]
             details = [i['href'] for i in get_descriptions]
             descriptions = []
+            company_names = []
+            experience = []
+            schedule = []
             for url in details:
                 detail_soup = BS(self.get_html(
                     f'https://www.job.kg{url}'), 'html.parser')
@@ -76,14 +86,57 @@ class Scraper:
                 except:
                     descriptions.append(detail_soup.find(
                         'div', class_="details-").text.replace('\xa0', ' ').strip())
-            for index in range(0, len(salary)):
+                company_names.append(detail_soup.find(
+                    'div', class_="employer- clearfix").p.b.a.text)
+                elements_of_kasha = re.split(
+                    '<dt>|</dt>|<dd>|</dd>', str(detail_soup.find('div', class_="vvloa-box").dl))
+                if "Опыт" in elements_of_kasha:
+                    experience.append(
+                        elements_of_kasha[elements_of_kasha.index("Опыт")+2])
+                else:
+                    experience.append('не требуется.')
+                if "График" in elements_of_kasha:
+                    schedule.append(
+                        elements_of_kasha[elements_of_kasha.index("График")+2])
+                else:
+                    schedule.append('Свободный график')
+
+            for index in range(0, len(headers)):
                 if address[index] == 'Кыргызстан: · Бишкек':
                     data.append(
-                        (headers[index], descriptions[index], salary[index]))
+                        (headers[index], company_names[index], experience[index], salary[index], schedule[index], descriptions[index]))
         return data
+
+    async def fillng_database(self):
+        from database.models import (
+            BishkekVacancy,
+            engine,
+            Base,
+            insert
+        )
+        from sqlalchemy.ext.asyncio import AsyncSession
+
+        # async with engine.begin() as connection:
+        #     pass
+
+        async with AsyncSession(engine, expire_on_commit=False) as session:
+            async with session.begin():
+                for data in self.get_data(self.get_amount_of_pages()):
+                    add_vacancy = insert(BishkekVacancy).values(
+                        {
+                            'header': data[0],
+                            'company_name': data[1],
+                            'required_experience': data[2],
+                            'salary': data[3],
+                            'schedule': data[4],
+                            'details': data[5],
+                        }
+                    )
+                    await session.execute(add_vacancy)
+        await session.commit()
+        return 'Good job!'
 
 
 if __name__ == "__main__":
     scraper = Scraper('https://www.job.kg/it-work')
-    for line in scraper.get_data(scraper.get_amount_of_pages()):
-        print(line)
+    asyncio.run(scraper.fillng_database())

@@ -2,6 +2,7 @@ import ssl
 import re
 import requests
 import asyncio
+from sqlalchemy.sql.expression import delete
 from urllib3 import poolmanager
 from bs4 import BeautifulSoup as BS
 
@@ -115,24 +116,30 @@ class Scraper:
             insert
         )
         from sqlalchemy.ext.asyncio import AsyncSession
+        from sqlalchemy.sql.expression import delete
 
-        # async with engine.begin() as connection:
-        #     pass
+        async with engine.begin() as connection:
+            # await connection.run_sync(Base.metadata.drop_all)
+            # await connection.run_sync(Base.metadata.create_all)
+            cmd = delete(BishkekVacancy)
+            await connection.execute(cmd)
+
 
         async with AsyncSession(engine, expire_on_commit=False) as session:
             async with session.begin():
                 for data in self.get_data(self.get_amount_of_pages()):
-                    add_vacancy = insert(BishkekVacancy).values(
-                        {
-                            'header': data[0],
-                            'company_name': data[1],
-                            'required_experience': data[2],
-                            'salary': data[3],
-                            'schedule': data[4],
-                            'details': data[5],
-                        }
-                    )
-                    await session.execute(add_vacancy)
+                    if 'python' in data[5] or 'Python' in data[5] or 'javascript' in data[5] or 'JavaScript' in data[5]:
+                        add_vacancy = insert(BishkekVacancy).values(
+                            {
+                                'header': data[0],
+                                'company_name': data[1],
+                                'required_experience': data[2],
+                                'salary': data[3],
+                                'schedule': data[4],
+                                'details': data[5],
+                            }
+                        )
+                        await session.execute(add_vacancy)
         await session.commit()
         return 'Good job!'
 

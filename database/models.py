@@ -10,7 +10,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
-from sqlalchemy.sql.expression import insert
+from sqlalchemy.sql.expression import delete, insert
 
 # Local application imports
 from database.settings import engine
@@ -231,7 +231,7 @@ class Vacancy(BaseModel):
     applicants = relationship('VacancyApplicants', back_populates='vacancy')
 
     def __repr__(self):
-        return f'{self.position}'
+        return self.position
 
 
 class BishkekVacancy(BaseModel):
@@ -274,7 +274,7 @@ class BishkekVacancy(BaseModel):
     )
 
     def __repr__(self):
-        return f'{self.header}'
+        return self.header
 
 
 class VacancyApplicants(BaseModel):

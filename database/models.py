@@ -94,11 +94,6 @@ class Reception(BaseModel):
         default=1
     )
 
-    about_company_text = Column(
-        Text,
-        nullable=False,
-        comment='The general information about company'
-    )
 
     def __repr__(self):
         return "<{0.__class__.__name__}(id={0.id!r})>".format(self)
@@ -235,6 +230,18 @@ class Vacancy(BaseModel):
 
 
 class BishkekVacancy(BaseModel):
+    """
+    Эта модель создана специально для записи данных о вакансий по городу Бишкек 
+    с сайта "https://www.job.kg/" при помощи парсера "job_kg_parser.py".
+    Она содержит поля:
+    header -> Название вакансии
+    company_name -> Название компании-работодателя
+    required_experience -> Требуемый опыт работы
+    salary -> Зарплата
+    schedule -> Занятость в день
+    details -> Подробное описание
+    type -> Тип вакансии: Python/JavaScript/*еще что-то*...
+    """
     __tablename__ = 'bishkek_vacancy'
 
     header = Column(
@@ -271,6 +278,12 @@ class BishkekVacancy(BaseModel):
         Text,
         nullable=False,
         comment='These are the description of vacancy'
+    )
+
+    type = Column(
+        String,
+        nullable=True,
+        comment='These are the type of vacancy(Example: Python, JavaScript...)'
     )
 
     def __repr__(self):
@@ -378,7 +391,7 @@ if __name__ == "__main__":
                 about = Reception(
                     apply=0, about_courses=0,
                     about_company=0, vacancies=0,
-                    news=0, about_company_text=ABOUT_COMPANY_RU
+                    news=0
                 )
                 session.add_all(
                     [about,

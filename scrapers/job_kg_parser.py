@@ -5,9 +5,17 @@ import asyncio
 from sqlalchemy.sql.expression import delete
 from urllib3 import poolmanager
 from bs4 import BeautifulSoup as BS
+from database.models import (
+    BishkekVacancy,
+    engine,
+    Base,
+    insert
+)
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.sql.expression import delete
 
 
-url = 'https://www.job.kg'
+from configs.constants import BISHKEK_SCRAPER_URL as url
 
 
 class TLSAdapter(requests.adapters.HTTPAdapter):
@@ -108,42 +116,47 @@ class Scraper:
                         (headers[index], company_names[index], experience[index], salary[index], schedule[index], descriptions[index]))
         return data
 
-    async def fillng_database(self):
-        from database.models import (
-            BishkekVacancy,
-            engine,
-            Base,
-            insert
-        )
-        from sqlalchemy.ext.asyncio import AsyncSession
-        from sqlalchemy.sql.expression import delete
 
-        async with engine.begin() as connection:
-            # await connection.run_sync(Base.metadata.drop_all)
-            # await connection.run_sync(Base.metadata.create_all)
-            cmd = delete(BishkekVacancy)
-            await connection.execute(cmd)
+async def filling_database(scraper):
+
+    async with engine.begin() as connection:
+        cmd = delete(BishkekVacancy)
+        await connection.execute(cmd)
 
 
-        async with AsyncSession(engine, expire_on_commit=False) as session:
-            async with session.begin():
-                for data in self.get_data(self.get_amount_of_pages()):
-                    if 'python' in data[5] or 'Python' in data[5] or 'javascript' in data[5] or 'JavaScript' in data[5]:
-                        add_vacancy = insert(BishkekVacancy).values(
-                            {
-                                'header': data[0],
-                                'company_name': data[1],
-                                'required_experience': data[2],
-                                'salary': data[3],
-                                'schedule': data[4],
-                                'details': data[5],
-                            }
-                        )
-                        await session.execute(add_vacancy)
-        await session.commit()
-        return 'Good job!'
+    async with AsyncSession(engine, expire_on_commit=False) as session:
+        async with session.begin():
+            for data in scraper.get_data(scraper.get_amount_of_pages()):
+                if 'python' in data[5] or 'Python' in data[5]:
+                    add_vacancy = insert(BishkekVacancy).values(
+                        {
+                            'header': data[0],
+                            'company_name': data[1],
+                            'required_experience': data[2],
+                            'salary': data[3],
+                            'schedule': data[4],
+                            'details': data[5],
+                            'type':'Python'
+                        }
+                    )
+                    await session.execute(add_vacancy)
+                elif 'javascript' in data[5] or 'JavaScript' in data[5] in data[5]:
+                    add_vacancy = insert(BishkekVacancy).values(
+                        {
+                            'header': data[0],
+                            'company_name': data[1],
+                            'required_experience': data[2],
+                            'salary': data[3],
+                            'schedule': data[4],
+                            'details': data[5],
+                            'type':'JavaScript'
+                        }
+                    )
+                    await session.execute(add_vacancy)
+    await session.commit()
+    return 'Good job!'
 
 
 if __name__ == "__main__":
-    scraper = Scraper('https://www.job.kg/it-work')
-    asyncio.run(scraper.fillng_database())
+    scraper = Scraper(url)
+    asyncio.run(filling_database(scraper))

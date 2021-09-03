@@ -16,7 +16,7 @@ class Languages(object):
         )
 
         kg_btn = InlineKeyboardButton(
-            'English 🇱🇷',
+            'English 🇺🇸',
             callback_data='kg'
         )
 
@@ -57,14 +57,19 @@ class MainMenu(object):
             callback_data='vacancies'
         )
 
-        news = InlineKeyboardButton(
-            text=SPEECH["news" + lang],
-            callback_data='news'
+        feedback = InlineKeyboardButton(
+            text=SPEECH["feedback_btn" + lang],
+            callback_data='feedback'
         )
 
-        self.markup.add(apply_btn, about_courses, about_company, vacancies)
+        tests = InlineKeyboardButton(
+            text=SPEECH["test_btn" + lang],
+            callback_data='test'
+        )
+
+        self.markup.add(apply_btn, about_courses, about_company, vacancies, tests)
         if shows == True:
-            self.markup.add(news)
+            self.markup.add(feedback)
 
         return self.markup
 
@@ -197,7 +202,6 @@ class ActiveVacancies(object):
 
         return markup
 
-
     async def apply_for_vacancy(self, vacancy_id):
         markup = InlineKeyboardMarkup(row_width=1)
         lang = await redworker.get_data(chat=self.chat_id)
@@ -211,14 +215,15 @@ class ActiveVacancies(object):
 
         return markup
 
-class Departments_type(object):
-    """docstring for Departments_type."""
+
+class DepartmentFeedback(object):
+    """docstring for DepartmentFeedback."""
     def __init__(self, chat_id):
-        super(Departments_type, self).__init__()
+        super(DepartmentFeedback, self).__init__()
         self.chat_id = chat_id
         self.markup = InlineKeyboardMarkup(row_width=2)
 
-    async def departments_buttons(self, back=False):
+    async def departments_buttons(self):
         lang = await redworker.get_data(chat=self.chat_id)
 
         python = InlineKeyboardButton(
@@ -241,14 +246,14 @@ class Departments_type(object):
 
         return self.markup
 
-class Group_time_fb(object):
-    """docstring for Group_time_fb."""
+class FeedbackSchedule(object):
+    """docstring for FeedbackSchedule."""
     def __init__(self, chat_id):
-        super(Group_time_fb, self).__init__()
+        super(FeedbackSchedule, self).__init__()
         self.chat_id = chat_id
         self.markup = InlineKeyboardMarkup(row_width=2)
 
-    async def group_times(self, back=False):
+    async def group_times(self):
         lang = await redworker.get_data(chat=self.chat_id)
 
         morning = InlineKeyboardButton(
@@ -270,3 +275,65 @@ class Group_time_fb(object):
 
 
         return self.markup
+    
+class Test(object):
+    """docstring for Test."""
+    def __init__(self):
+        super(Test, self).__init__()
+
+    async def rules(self, chat_id):
+        lang = await redworker.get_data(chat=chat_id)
+        markup = InlineKeyboardMarkup(row_width=1)
+
+        start_test = InlineKeyboardButton(
+            text=SPEECH["start_test_btn" + lang],
+            callback_data='start_test'
+        )
+
+        back = InlineKeyboardButton(
+            text=SPEECH["back" + lang],
+            callback_data='back'
+        )
+
+        markup.add(start_test, back)
+        return markup
+    
+    async def choose_true_answers(self, chat_id, answers):
+        lang = await redworker.get_data(chat=chat_id)
+        markup = InlineKeyboardMarkup(row_width=2)
+
+        answer1 = InlineKeyboardButton(
+            text=answers[0],
+            callback_data='1'
+        )
+        answer2 = InlineKeyboardButton(
+            text=answers[1],
+            callback_data='2'
+        )
+        answer3 = InlineKeyboardButton(
+            text=answers[2],
+            callback_data='3'
+        )
+        answer4 = InlineKeyboardButton(
+            text=answers[3],
+            callback_data='4'
+        )
+        stop_tests = InlineKeyboardButton(
+            text=SPEECH["stop_test_btn" + lang],
+            callback_data='stop_test'
+        )
+
+        markup.add(answer1, answer2, answer3, answer4, stop_tests)
+        return markup
+
+    async def know_points(self, chat_id):
+        lang = await redworker.get_data(chat=chat_id)
+        markup = InlineKeyboardMarkup(row_width=1)
+
+        know = InlineKeyboardButton(
+            text=SPEECH["know_point_btn" + lang],
+            callback_data='knows'
+        )
+
+        markup.add(know)
+        return markup

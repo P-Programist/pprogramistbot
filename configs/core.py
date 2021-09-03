@@ -14,3 +14,24 @@ redworker = RedisStorage2(
     port = 6379, 
     password = REDIS_PASSWORD
 )
+
+point = RedisStorage2(
+    host='127.0.0.1',
+    db=3,
+    port = 6379, 
+    password = REDIS_PASSWORD
+)
+
+question = RedisStorage2(
+    host='127.0.0.1',
+    db=4,
+    port = 6379, 
+    password = REDIS_PASSWORD
+)
+
+check = RedisStorage2(
+    host='127.0.0.1',
+    db=5,
+    port = 6379, 
+    password = REDIS_PASSWORD
+)

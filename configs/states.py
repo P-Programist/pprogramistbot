@@ -14,6 +14,7 @@ class BotStates(StatesGroup):
     vacancy_categories = State()
     company_vacancies = State()
     local_vacancies = State()
+    bishkek_vacancies = State()
     foreign_vacancies = State()
 
     applied_for_vacancy = State()
@@ -23,4 +24,10 @@ class BotStates(StatesGroup):
     confirm_number_for_vacancy = State()
     complete_vacancy_application = State()
 
-    read_news = State()
+    add_feedback = State()
+    choose_times = State()
+    feedback_text = State()
+    more_detailed_vac = State()
+
+    start_test = State()
+    choose_answer = State()

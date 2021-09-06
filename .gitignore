@@ -5,6 +5,8 @@ static
 
 constants.py
 Dockerfile
+ticket.txt
+.py
 
 *.drawio
 *.sql

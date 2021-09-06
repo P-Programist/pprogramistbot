@@ -1,12 +1,19 @@
 # Standard library imports
+from datetime import datetime 
 
 # Third party imports
 from aiogram import executor
 from aiogram.bot import Bot
 from aiogram.dispatcher import Dispatcher
-from aiogram.types import Message, CallbackQuery, ParseMode
+from aiogram.types import Message, CallbackQuery, ParseMode, message
 import asyncio
+from asyncio.tasks import sleep
 import uvloop
+
+#SQL Alchemy
+from sqlalchemy import update, insert
+from sqlalchemy.future import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 # Local application imports
 from buttons.inlines_buttons import (
@@ -15,10 +22,14 @@ from buttons.inlines_buttons import (
     Departments,
     GroupTime,
     ActiveVacancies,
+    DepartmentFeedback,
+    FeedbackSchedule,
+    Test,
 )
 from buttons.text_buttons import ConfirmNumber
 from configs import constants, states, subfunctions
-from configs.core import redworker, storage
+from configs.core import redworker, storage, point, question, check, time_trecker
+from database.settings import engine
 from database.models import (
     Course,
     Customer,
@@ -26,8 +37,10 @@ from database.models import (
     Department,
     Vacancy,
     VacancyApplicants,
+    TestQuestions,
 )
 
+student_vr = ('1624089338')
 
 uvloop.install()
 loop = asyncio.get_event_loop()
@@ -74,7 +87,7 @@ async def send_main_menu(call: CallbackQuery):
 
     await call.message.edit_text(
         text=constants.SPEECH["main_menu" + lang],
-        reply_markup=await MainMenu(chat_id).main_menu_buttons(),
+        reply_markup=await MainMenu(chat_id).main_menu_buttons(str(chat_id) in student_vr),
         parse_mode=ParseMode.MARKDOWN,
     )
 
@@ -137,15 +150,47 @@ async def reception(call: CallbackQuery):
 
             return await states.BotStates.vacancy_categories.set()
 
-        if call.data == "news":
+        if call.data == "feedback":
             await call.message.edit_text(
                 # text=constants.SPEECH["not_found" + lang],
-                text=constants.type_racer,
-                reply_markup=await MainMenu(chat_id).step_back(),
+                text=constants.SPEECH["changes" + lang],
+                reply_markup=await DepartmentFeedback(chat_id).departments_buttons(),
                 parse_mode=ParseMode.MARKDOWN,
             )
 
-            return await states.BotStates.read_news.set()
+            return await states.BotStates.add_feedback.set()
+
+        if call.data == "test":
+            await call.message.edit_text(
+                text=constants.SPEECH["rules" + lang],
+                reply_markup=await Test().rules(chat_id),
+                parse_mode=ParseMode.MARKDOWN,
+            )
+            now = datetime.now() 
+            await question.set_data(chat=chat_id, data=1)
+            await time_trecker.set_data(chat=chat_id, data=now.strftime("%H:%M:%S"))
+            await check.set_data(chat=chat_id, data=None)
+            await point.set_data(chat=chat_id, data=None)
+
+            return await states.BotStates.start_test.set()
+
+
+@dp.message_handler(commands=["get_stats"], state="*")
+async def stats(message: Message):
+    """
+    A secret feature available only to a select few. 
+    Displays statistics on user clicks of buttons.
+    """
+    data = await subfunctions.get_stats()
+    if message.chat.id in constants.SUPERUSERS:
+        return await message.answer(
+            text = f"""
+Нажатий на клaвишу "Подать заявку"😎: {data['apply']}
+Нажатий на клaвишу "О компании"🕍: {data['about_company']}
+Нажатий на клaвишу "О курсах"🗿: {data['about_courses']}
+Нажатий на клaвишу "Вакансии"🧹: {data['vacancies']}
+"""
+        )
 
 
 ############################################################
@@ -175,7 +220,7 @@ async def set_time_for_course(call: CallbackQuery):
         if call.data == "back_to_menu":
             await call.message.edit_text(
                 text=constants.SPEECH["main_menu" + lang],
-                reply_markup=await MainMenu(chat_id).main_menu_buttons(),
+                reply_markup=await MainMenu(chat_id).main_menu_buttons(str(chat_id) in student_vr),
                 parse_mode=ParseMode.MARKDOWN,
             )
 
@@ -185,7 +230,7 @@ async def set_time_for_course(call: CallbackQuery):
         user = await subfunctions.object_exists(Customer, attr, chat_id)
 
         if user:
-            if user.phone:
+            if not user.phone:    ##############!!!!!!!!!!!!!!!!!######### тут надо будет убрать not 
                 # If we find the User in database - that means he already applied for the last 3 days
                 f_name, dp_name = user.first_name, user.department_name
 
@@ -195,12 +240,12 @@ async def set_time_for_course(call: CallbackQuery):
                     .replace("dp", dp_name),
                     parse_mode=ParseMode.MARKDOWN,
                 )
-
+            
                 await asyncio.sleep(1.5)
 
                 await call.message.answer(
                     text=constants.SPEECH["main_menu" + lang],
-                    reply_markup=await MainMenu(chat_id).main_menu_buttons(),
+                    reply_markup=await MainMenu(chat_id).main_menu_buttons(str(chat_id) in student_vr),
                     parse_mode=ParseMode.MARKDOWN,
                 )
 
@@ -288,7 +333,8 @@ async def complete_applying(message: Message):
             user.id,
             {
                 "phone": int(
-                    "".join([i for i in message.contact.phone_number if i.isdigit()])
+                    "".join(
+                        [i for i in message.contact.phone_number if i.isdigit()])
                 )
             },
         )
@@ -303,7 +349,7 @@ async def complete_applying(message: Message):
 
         await message.answer(
             text=constants.SPEECH["main_menu" + lang],
-            reply_markup=await MainMenu(chat_id).main_menu_buttons(),
+            reply_markup=await MainMenu(chat_id).main_menu_buttons(str(chat_id) in student_vr),
             parse_mode=ParseMode.MARKDOWN,
         )
 
@@ -335,7 +381,7 @@ async def send_information_about_course(call: CallbackQuery):
     if call.data == "back_to_menu":
         await call.message.edit_text(
             text=constants.SPEECH["main_menu" + lang],
-            reply_markup=await MainMenu(chat_id).main_menu_buttons(),
+            reply_markup=await MainMenu(chat_id).main_menu_buttons(str(chat_id) in student_vr),
             parse_mode=ParseMode.MARKDOWN,
         )
 
@@ -371,7 +417,7 @@ async def send_information_about_course(call: CallbackQuery):
         if not course:
             await call.message.edit_text(
                 text=constants.SPEECH["course_under_development" + lang],
-                reply_markup=await MainMenu(chat_id).main_menu_buttons(),
+                reply_markup=await MainMenu(chat_id).main_menu_buttons(str(chat_id) in student_vr),
                 parse_mode=ParseMode.MARKDOWN,
             )
 
@@ -403,7 +449,7 @@ async def read_about_company(call: CallbackQuery):
     if call.data:
         await call.message.edit_text(
             text=constants.SPEECH["main_menu" + lang],
-            reply_markup=await MainMenu(chat_id).main_menu_buttons(),
+            reply_markup=await MainMenu(chat_id).main_menu_buttons(str(chat_id) in student_vr),
             parse_mode=ParseMode.MARKDOWN,
         )
 
@@ -420,41 +466,46 @@ async def read_about_company(call: CallbackQuery):
 ############################################################
 @dp.callback_query_handler(state=states.BotStates.vacancy_categories)
 async def vacancy_list(call: CallbackQuery):
+    """
+    Эта функция занимается выводом вакансий.
+    Есть 3 условия, отвечающие за соответствующие данные из соответствующих таблиц(BishkekVacancy etc...).
+    1.
+    2. Условие 'city' отвечает за вывод вакансий по городу. 
+    Оно вызывает асинхронную функцию subfunctions.extract_bishkek_vacancies, 
+    формирует сообщение и отправляет его пользователю.
+    3.
+    """
     chat_id = call.message.chat.id
     lang = await redworker.get_data(chat=chat_id)
 
     if call.data == "back_to_menu":
         await call.message.edit_text(
             text=constants.SPEECH["main_menu" + lang],
-            reply_markup=await MainMenu(chat_id).main_menu_buttons(),
+            reply_markup=await MainMenu(chat_id).main_menu_buttons(str(chat_id) in student_vr),
             parse_mode=ParseMode.MARKDOWN,
         )
 
         return await states.BotStates.main_menu.set()
 
-    vacancies_list = await subfunctions.extract_vacancies(call)
+        
+    if call.data == 'city':
+        vacancies_list = await subfunctions.extract_bishkek_vacancies()
+        [(await call.message.answer(text=f"""
+💻 Должность:  {text[0]}\n
+🕴 Работодатель: {text[5]}\n
+💲 Зарплата: {text[1]}\n\n
+{text[2][:330]}...\n\n
+🧠 Требуемый опыт работы: {text[3]}\n
+🕙 Занятость: {text[4]}\n
+        """)) for text in vacancies_list]
+        
+    await call.message.answer(
+           text=constants.SPEECH["back_to_vacancies" + lang],
+           reply_markup=await MainMenu(chat_id).step_back(),
+           parse_mode=ParseMode.MARKDOWN,
+       )
+    return await states.BotStates.local_vacancies.set()
 
-    if not vacancies_list:
-        await call.message.answer(
-            text=constants.SPEECH["not_found" + lang], parse_mode=ParseMode.MARKDOWN
-        )
-
-        return await states.BotStates.vacancy_categories.set()
-
-    await call.message.delete_reply_markup()
-
-    async for text, button in vacancies_list:
-        await call.message.answer(
-            text=text, reply_markup=button, parse_mode=ParseMode.MARKDOWN
-        )
-    else:
-        await call.message.answer(
-            text=constants.SPEECH["back_to_vacancies" + lang],
-            reply_markup=await MainMenu(chat_id).step_back(),
-            parse_mode=ParseMode.MARKDOWN,
-        )
-
-        return await states.BotStates.local_vacancies.set()
 
 
 @dp.callback_query_handler(state=states.BotStates.local_vacancies)
@@ -487,7 +538,7 @@ async def vacancies_list_provided(call: CallbackQuery):
 
             await call.message.answer(
                 text=constants.SPEECH["main_menu" + lang],
-                reply_markup=await MainMenu(chat_id).main_menu_buttons(),
+                reply_markup=await MainMenu(chat_id).main_menu_buttons(str(chat_id) in student_vr),
                 parse_mode=ParseMode.MARKDOWN,
             )
 
@@ -501,7 +552,8 @@ async def vacancies_list_provided(call: CallbackQuery):
     await subfunctions.insert_object(VacancyApplicants, data, call)
 
     await call.message.answer(
-        text=constants.SPEECH["tell_me_full_name" + lang], parse_mode=ParseMode.MARKDOWN
+        text=constants.SPEECH["tell_me_full_name" +
+                              lang], parse_mode=ParseMode.MARKDOWN
     )
 
     return await states.BotStates.full_name_for_vacancy.set()
@@ -520,7 +572,8 @@ async def ask_fullname_for_vacancy(message: Message):
     )
 
     await message.answer(
-        text=constants.SPEECH["cover_letter" + lang], parse_mode=ParseMode.MARKDOWN
+        text=constants.SPEECH["cover_letter" +
+                              lang], parse_mode=ParseMode.MARKDOWN
     )
 
     return await states.BotStates.cover_letter.set()
@@ -533,11 +586,13 @@ async def ask_cover_letter_for_vacancy(message: Message):
 
     chat_id_attr = getattr(VacancyApplicants, "chat_id")
     await subfunctions.update_object(
-        VacancyApplicants, chat_id_attr, chat_id, {"cover_letter": message.text}
+        VacancyApplicants, chat_id_attr, chat_id, {
+            "cover_letter": message.text}
     )
 
     await message.answer(
-        text=constants.SPEECH["provide_github" + lang], parse_mode=ParseMode.MARKDOWN
+        text=constants.SPEECH["provide_github" +
+                              lang], parse_mode=ParseMode.MARKDOWN
     )
 
     return await states.BotStates.github_link.set()
@@ -548,22 +603,34 @@ async def ask_github_link_for_vacancy(message: Message):
     chat_id = message.chat.id
     lang = await redworker.get_data(chat=chat_id)
 
-    chat_id_attr = getattr(VacancyApplicants, "chat_id")
-    await subfunctions.update_object(
-        VacancyApplicants, chat_id_attr, chat_id, {"github_link": message.text}
-    )
+    if 'github' in message.text or 'bitbucket' in message.text:
+        chat_id_attr = getattr(VacancyApplicants, "chat_id")
+        await subfunctions.update_object(
+            VacancyApplicants, chat_id_attr, chat_id, {
+                "github_link": message.text}
+        )
 
-    await message.answer(
-        text=constants.SPEECH["confirm_to_apply" + lang], parse_mode=ParseMode.MARKDOWN
-    )
 
-    await message.answer(
-        text=constants.SPEECH["confirm_number_text" + lang],
-        reply_markup=await ConfirmNumber(chat_id).confirm_number(),
-        parse_mode=ParseMode.MARKDOWN,
-    )
+        await message.answer(
+            text=constants.SPEECH["confirm_to_apply" +
+                                lang], parse_mode=ParseMode.MARKDOWN
+        )
 
-    return await states.BotStates.confirm_number_for_vacancy.set()
+
+        await message.answer(
+            text=constants.SPEECH["confirm_number_text" + lang],
+            reply_markup=await ConfirmNumber(chat_id).confirm_number(),
+            parse_mode=ParseMode.MARKDOWN,
+        )
+
+        return await states.BotStates.confirm_number_for_vacancy.set()
+
+    else:
+        await message.answer(
+            text=constants.SPEECH["provide_github" +
+                                  lang], parse_mode=ParseMode.MARKDOWN
+        )
+        return await states.BotStates.github_link.set()
 
 
 @dp.message_handler(
@@ -581,7 +648,8 @@ async def complete_vacancy_applying(message: Message):
             chat_id,
             {
                 "phone_number": int(
-                    "".join([i for i in message.contact.phone_number if i.isdigit()])
+                    "".join(
+                        [i for i in message.contact.phone_number if i.isdigit()])
                 )
             },
         )
@@ -595,7 +663,7 @@ async def complete_vacancy_applying(message: Message):
 
         await message.answer(
             text=constants.SPEECH["main_menu" + lang],
-            reply_markup=await MainMenu(chat_id).main_menu_buttons(),
+            reply_markup=await MainMenu(chat_id).main_menu_buttons(str(chat_id) in student_vr),
             parse_mode=ParseMode.MARKDOWN,
         )
 
@@ -614,21 +682,171 @@ async def complete_vacancy_applying(message: Message):
 ###################### END VACANCIES #######################
 ############################################################
 
-
-@dp.callback_query_handler(state=states.BotStates.read_news)
-async def news_category(call: CallbackQuery):
+############################################################
+######################## FEEDBACKS #########################
+############################################################
+@dp.callback_query_handler(state=states.BotStates.add_feedback)
+async def check_group(call: CallbackQuery):
     chat_id = call.message.chat.id
     lang = await redworker.get_data(chat=chat_id)
 
-    if call.data == "back":
+    if call.data == "python2":
+        await call.message.edit_text(
+            text=constants.SPEECH["changes_time" + lang],
+            reply_markup=await FeedbackSchedule(chat_id).group_times(),
+            parse_mode=ParseMode.MARKDOWN,
+        )
+    elif call.data == "javascript2":
+        await call.message.edit_text(
+            text=constants.SPEECH["changes_time" + lang],
+            reply_markup=await FeedbackSchedule(chat_id).group_times(),
+            parse_mode=ParseMode.MARKDOWN,
+        )
+    elif call.data == "back":
         await call.message.edit_text(
             text=constants.SPEECH["main_menu" + lang],
-            reply_markup=await MainMenu(chat_id).main_menu_buttons(),
+            reply_markup=await MainMenu(chat_id).main_menu_buttons(str(chat_id) in student_vr),
             parse_mode=ParseMode.MARKDOWN,
         )
 
         return await states.BotStates.main_menu.set()
+    return await states.BotStates.choose_times.set()
 
+
+@dp.callback_query_handler(state=states.BotStates.choose_times)
+async def choose_times_gr(call: CallbackQuery):
+    chat_id = call.message.chat.id
+    lang = await redworker.get_data(chat=chat_id)
+
+    if call.data == "0":
+        await call.message.edit_text(
+            text=constants.SPEECH["feedback" + lang],
+            parse_mode=ParseMode.MARKDOWN,
+        )
+    elif call.data == "1":
+        await call.message.edit_text(
+            text=constants.SPEECH["feedback" + lang],
+            parse_mode=ParseMode.MARKDOWN,
+        )
+
+    return await states.BotStates.feedback_text.set()
+
+
+@dp.message_handler(content_types=["text"], state=states.BotStates.feedback_text)
+async def feedback_text(message: Message):
+    chat_id = message.chat.id
+    lang = await redworker.get_data(chat=chat_id)
+
+    # print(message.text)
+
+    await message.answer(
+        text=constants.SPEECH["main_menu" + lang],
+        reply_markup=await MainMenu(chat_id).main_menu_buttons(str(chat_id) in student_vr),
+        parse_mode=ParseMode.MARKDOWN,
+    )
+    return await states.BotStates.main_menu.set()
+
+############################################################
+###################### END FEEDBACKS #######################
+############################################################
+
+############################################################
+########################## TESTS ###########################
+############################################################
+
+
+@dp.callback_query_handler(state=states.BotStates.start_test)
+async def questions(call: CallbackQuery):
+    '''В этой функции отправляются вопросы и записываются в БД ответы пользователей, 
+    далее отправляет это данные в следущую функцию.'''
+    
+    chat_id = call.message.chat.id
+    lang = await redworker.get_data(chat=chat_id)
+    question_id = await question.get_data(chat=chat_id)
+    checking = await check.get_data(chat=chat_id)
+    time_treck = await time_trecker.get_data(chat=chat_id)
+
+    if call.data == "back" or call.data == "stop_test":
+        await call.message.edit_text(
+            text=constants.SPEECH["main_menu" + lang],
+            reply_markup=await MainMenu(chat_id).main_menu_buttons(str(chat_id) in student_vr),
+            parse_mode=ParseMode.MARKDOWN,
+        )
+        return await states.BotStates.main_menu.set()
+
+    now = datetime.now() 
+    current_time = now.strftime("%H:%M:%S") 
+    times = str(datetime.strptime(current_time, constants.TYPE_TIME) - datetime.strptime(time_treck, constants.TYPE_TIME))
+
+    if datetime.strptime(times, constants.TYPE_TIME) > datetime.strptime(constants.TIME_LIMIT, constants.TYPE_TIME):
+        await call.message.edit_text(
+            text=f'{constants.SPEECH["time_stop" + lang]} \n{constants.SPEECH["main_menu" + lang]}',
+            reply_markup=await MainMenu(chat_id).main_menu_buttons(str(chat_id) in student_vr),
+            parse_mode=ParseMode.MARKDOWN,
+        )
+        return await states.BotStates.main_menu.set()
+
+    if question_id <= 10:
+        questions_list = await subfunctions.questions(call, question_id)
+        generat = next(questions_list)
+
+        if not call.data == 'start_test':
+            if checking:
+                await check.set_data(chat=chat_id, data=f'{checking}, {call.data}')
+            else:
+                await check.set_data(chat=chat_id, data=f'{call.data}')
+
+        await call.message.edit_text(
+            text=generat[0],
+            reply_markup=await Test().choose_true_answers(chat_id, generat[1].split(', ')),
+            parse_mode=ParseMode.MARKDOWN
+        )
+        await question.set_data(chat=chat_id, data=1+question_id)
+    else:
+        await check.set_data(chat=chat_id, data=f'{checking}, {call.data}')
+
+        await call.message.edit_text(
+            text=constants.SPEECH["know_point" + lang],
+            reply_markup=await Test().know_points(chat_id),
+            parse_mode=ParseMode.MARKDOWN,
+        )
+        return await states.BotStates.choose_answer.set()
+
+    return await states.BotStates.start_test.set()
+
+@dp.callback_query_handler(state=states.BotStates.choose_answer)
+async def questions(call: CallbackQuery):
+    '''В этой функции проверяется правильно ли он ответил на тот или иной вопрос, 
+    далее все баллы подсчитиваютя и отправляются пользователю.'''
+
+    chat_id = call.message.chat.id
+    lang = await redworker.get_data(chat=chat_id)
+    checking = await check.get_data(chat=chat_id)
+
+    if call.data == 'knows':
+        for question_id in range(1, 11):
+            questions_list = await subfunctions.questions(call, question_id)
+            generat = next(questions_list)
+            if generat[2] == checking.split(', ')[question_id-1]:
+                points = await point.get_data(chat=chat_id)
+                if points:
+                    await point.set_data(chat=chat_id, data=points+generat[3])
+                else:
+                    await point.set_data(chat=chat_id, data=generat[3])
+                
+    
+    await call.message.edit_text(
+        text=f'Ваш результат: {await point.get_data(chat=chat_id)} баллов! \n{constants.SPEECH["main_menu" + lang]}',
+        reply_markup=await MainMenu(chat_id).main_menu_buttons(str(chat_id) in student_vr),
+        parse_mode=ParseMode.MARKDOWN,
+    )
+    return await states.BotStates.main_menu.set()
+
+
+
+############################################################
+######################## END TESTS #########################
+############################################################
 
 if __name__ == "__main__":
     executor.start_polling(dispatcher=dp, loop=loop)

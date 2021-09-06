@@ -7,3 +7,4 @@ constants.py
 Dockerfile
 
 *.drawio
+*.sql

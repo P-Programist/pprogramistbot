@@ -35,3 +35,10 @@ check = RedisStorage2(
     port = 6379, 
     password = REDIS_PASSWORD
 )
+
+time_trecker = RedisStorage2(
+    host='127.0.0.1',
+    db=6,
+    port = 6379, 
+    password = REDIS_PASSWORD
+)

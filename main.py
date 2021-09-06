@@ -1,4 +1,5 @@
 # Standard library imports
+from datetime import datetime 
 
 # Third party imports
 from aiogram import executor
@@ -27,7 +28,7 @@ from buttons.inlines_buttons import (
 )
 from buttons.text_buttons import ConfirmNumber
 from configs import constants, states, subfunctions
-from configs.core import redworker, storage, point, question, check
+from configs.core import redworker, storage, point, question, check, time_trecker
 from database.settings import engine
 from database.models import (
     Course,
@@ -161,7 +162,9 @@ async def reception(call: CallbackQuery):
                 reply_markup=await Test().rules(chat_id),
                 parse_mode=ParseMode.MARKDOWN,
             )
+            now = datetime.now() 
             await question.set_data(chat=chat_id, data=1)
+            await time_trecker.set_data(chat=chat_id, data=now.strftime("%H:%M:%S"))
             await check.set_data(chat=chat_id, data=None)
             await point.set_data(chat=chat_id, data=None)
 
@@ -733,10 +736,23 @@ async def questions(call: CallbackQuery):
     lang = await redworker.get_data(chat=chat_id)
     question_id = await question.get_data(chat=chat_id)
     checking = await check.get_data(chat=chat_id)
+    time_treck = await time_trecker.get_data(chat=chat_id)
 
     if call.data == "back" or call.data == "stop_test":
         await call.message.edit_text(
             text=constants.SPEECH["main_menu" + lang],
+            reply_markup=await MainMenu(chat_id).main_menu_buttons(str(chat_id) in student_vr),
+            parse_mode=ParseMode.MARKDOWN,
+        )
+        return await states.BotStates.main_menu.set()
+
+    now = datetime.now() 
+    current_time = now.strftime("%H:%M:%S") 
+    times = str(datetime.strptime(current_time, constants.TYPE_TIME) - datetime.strptime(time_treck, constants.TYPE_TIME))
+
+    if datetime.strptime(times, constants.TYPE_TIME) > datetime.strptime(constants.TIME_LIMIT, constants.TYPE_TIME):
+        await call.message.edit_text(
+            text=f'{constants.SPEECH["time_stop" + lang]} \n{constants.SPEECH["main_menu" + lang]}',
             reply_markup=await MainMenu(chat_id).main_menu_buttons(str(chat_id) in student_vr),
             parse_mode=ParseMode.MARKDOWN,
         )
@@ -773,7 +789,7 @@ async def questions(call: CallbackQuery):
 @dp.callback_query_handler(state=states.BotStates.choose_answer)
 async def questions(call: CallbackQuery):
     '''В этой функции проверяется правильно ли он ответил на тот или иной вопрос, 
-    далее все баллы подсчитиваютя  и отправляются пользователю.'''
+    далее все баллы подсчитиваютя и отправляются пользователю.'''
 
     chat_id = call.message.chat.id
     lang = await redworker.get_data(chat=chat_id)

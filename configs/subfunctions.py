@@ -4,7 +4,7 @@ from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from buttons.inlines_buttons import ActiveVacancies
-from database.models import Vacancy
+from database.models import Vacancy, TestQuestions
 from database.settings import engine
 
 
@@ -74,7 +74,7 @@ async def update_object(model, object_attr, attr_value, data, *args):
     return data
 
 
-async def extract_vacancies(call) -> tuple:
+async def extract_vacancies(call):
     chat_id = call.message.chat.id
 
     async with AsyncSession(engine, expire_on_commit=False) as session:
@@ -92,11 +92,35 @@ async def extract_vacancies(call) -> tuple:
 
 
     data = lst.all()
-
+    
     if data:
         return (
             (
                 item[0].position, await ActiveVacancies(chat_id).apply_for_vacancy(item[0].id)
+            ) for item in data
+        )
+
+    return data
+
+
+async def questions(call, question_id):
+    chat_id = call.message.chat.id
+
+    async with AsyncSession(engine, expire_on_commit=False) as session:
+        async with session.begin():
+            question_list = select(TestQuestions).where(
+                TestQuestions.id == question_id
+            )
+
+            lst = await session.execute(question_list)
+    
+
+    data = lst.all()
+
+    if data:
+        return (
+            (
+                item[0].question, item[0].answers, item[0].true_answers, item[0].significance
             ) for item in data
         )
 

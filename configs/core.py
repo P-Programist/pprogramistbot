@@ -1,5 +1,5 @@
 from aiogram.contrib.fsm_storage.redis import RedisStorage2
-from configs.constants import REDIS_PASSWORD
+ from .constants import REDIS_PASSWORD
 
 storage = RedisStorage2(
     host='localhost',

@@ -10,7 +10,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
-from sqlalchemy.sql.expression import delete, insert
+from sqlalchemy.sql.expression import insert
 
 # Local application imports
 from database.settings import engine

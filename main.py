@@ -28,7 +28,7 @@ from buttons.inlines_buttons import (
 )
 from buttons.text_buttons import ConfirmNumber
 from configs import constants, states, subfunctions
-from configs.core import redworker, storage, point, question, check, time_trecker
+from configs.core import redworker, storage, point, check, time_question
 from database.settings import engine
 from database.models import (
     Course,
@@ -167,8 +167,7 @@ async def reception(call: CallbackQuery):
                 parse_mode=ParseMode.MARKDOWN,
             )
             now = datetime.now() 
-            await question.set_data(chat=chat_id, data=1)
-            await time_trecker.set_data(chat=chat_id, data=now.strftime("%H:%M:%S"))
+            await time_question.set_data(chat=chat_id, data=(now.strftime("%H:%M:%S"), 1))
             await check.set_data(chat=chat_id, data=None)
             await point.set_data(chat=chat_id, data=None)
 
@@ -762,9 +761,8 @@ async def questions(call: CallbackQuery):
     
     chat_id = call.message.chat.id
     lang = await redworker.get_data(chat=chat_id)
-    question_id = await question.get_data(chat=chat_id)
     checking = await check.get_data(chat=chat_id)
-    time_treck = await time_trecker.get_data(chat=chat_id)
+    time_question_id = await time_question.get_data(chat=chat_id)
 
     if call.data == "back" or call.data == "stop_test":
         await call.message.edit_text(
@@ -776,7 +774,7 @@ async def questions(call: CallbackQuery):
 
     now = datetime.now() 
     current_time = now.strftime("%H:%M:%S") 
-    times = str(datetime.strptime(current_time, constants.TYPE_TIME) - datetime.strptime(time_treck, constants.TYPE_TIME))
+    times = str(datetime.strptime(current_time, constants.TYPE_TIME) - datetime.strptime(time_question_id[0], constants.TYPE_TIME))
 
     if datetime.strptime(times, constants.TYPE_TIME) > datetime.strptime(constants.TIME_LIMIT, constants.TYPE_TIME):
         await call.message.edit_text(
@@ -786,8 +784,8 @@ async def questions(call: CallbackQuery):
         )
         return await states.BotStates.main_menu.set()
 
-    if question_id <= 10:
-        questions_list = await subfunctions.questions(call, question_id)
+    if time_question_id[1] <= 10:
+        questions_list = await subfunctions.questions(call, time_question_id[1])
         generat = next(questions_list)
 
         if not call.data == 'start_test':
@@ -801,7 +799,8 @@ async def questions(call: CallbackQuery):
             reply_markup=await Test().choose_true_answers(chat_id, generat[1].split(', ')),
             parse_mode=ParseMode.MARKDOWN
         )
-        await question.set_data(chat=chat_id, data=1+question_id)
+        
+        await time_question.set_data(chat=chat_id, data=(time_question_id[0], 1+time_question_id[1]))
     else:
         await check.set_data(chat=chat_id, data=f'{checking}, {call.data}')
 

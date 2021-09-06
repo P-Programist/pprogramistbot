@@ -21,24 +21,20 @@ point = RedisStorage2(
     port=6379,
     password=REDIS_PASSWORD,
 )
+'''Таблица point хранит в себе баллы собранные пользователем'''
 
-question = RedisStorage2(
-    host="127.0.0.1",
+
+time_question = RedisStorage2(
+    host='127.0.0.1',
     db=4,
     port=6379,
     password=REDIS_PASSWORD,
 )
+'''Таблица time_question хранит в себе время в которое должен уложиться пользователь во время теста, также на каком вопросе находился пользователь'''
 
 check = RedisStorage2(
     host="127.0.0.1",
     db=5,
-    port=6379,
-    password=REDIS_PASSWORD,
-)
-
-time_trecker = RedisStorage2(
-    host="127.0.0.1",
-    db=6,
     port=6379,
     password=REDIS_PASSWORD,
 )

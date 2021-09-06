@@ -8,10 +8,12 @@ from sqlalchemy import (
     Integer, String, TIMESTAMP,
     SmallInteger, BigInteger, Text
 )
-from sqlalchemy.ext.declarative import declarative_base
+
 from sqlalchemy.orm import relationship
-from sqlalchemy.sql.expression import insert
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.sql.expression import delete, insert
 from sqlalchemy.sql.sqltypes import TEXT, VARCHAR
+
 
 # Local application imports
 from database.settings import engine
@@ -97,11 +99,6 @@ class Reception(BaseModel):
         default=1
     )
 
-    about_company_text = Column(
-        Text,
-        nullable=False,
-        comment='The general information about company'
-    )
 
     test = Column(
         Integer,
@@ -241,7 +238,68 @@ class Vacancy(BaseModel):
     applicants = relationship('VacancyApplicants', back_populates='vacancy')
 
     def __repr__(self):
-        return f'{self.position}'
+        return self.position
+
+
+class BishkekVacancy(BaseModel):
+    """
+    Эта модель создана специально для записи данных о вакансий по городу Бишкек 
+    с сайта "https://www.job.kg/" при помощи парсера "job_kg_parser.py".
+    Она содержит поля:
+    header -> Название вакансии
+    company_name -> Название компании-работодателя
+    required_experience -> Требуемый опыт работы
+    salary -> Зарплата
+    schedule -> Занятость в день
+    details -> Подробное описание
+    type -> Тип вакансии: Python/JavaScript/*еще что-то*...
+    """
+    __tablename__ = 'bishkek_vacancy'
+
+    header = Column(
+        String,
+        nullable=False,
+        comment='The name of vacancy'
+    )
+
+    company_name = Column(
+        String,
+        nullable=False,
+        comment='The name of company'
+    )
+
+    required_experience = Column(
+        String,
+        nullable=False,
+        comment='Required work experience'
+    )
+
+    salary = Column(
+        String,
+        nullable=False,
+        comment='The salary of a worker'
+    )
+
+    schedule = Column(
+        String,
+        nullable=False,
+        comment='The schedule of a work'
+    )
+
+    details = Column(
+        Text,
+        nullable=False,
+        comment='These are the description of vacancy'
+    )
+
+    type = Column(
+        String,
+        nullable=True,
+        comment='These are the type of vacancy(Example: Python, JavaScript...)'
+    )
+
+    def __repr__(self):
+        return self.header
 
 
 class VacancyApplicants(BaseModel):
@@ -391,14 +449,15 @@ if __name__ == "__main__":
         async with AsyncSession(engine, expire_on_commit=False) as session:
             async with session.begin():
                 python = Department(id=1, department_name='Python')
-                sys_admin = Department(
-                    id=2, department_name='System Administrator')
+                sys_admin = Department(id=2, department_name='System Administrator')
                 javascript = Department(id=3, department_name='Javascript')
                 java = Department(id=4, department_name='Java')
                 about = Reception(
                     apply=0, about_courses=0,
                     about_company=0, vacancies=0,
+                    news=0
                     feedback=0, about_company_text=ABOUT_COMPANY_RU
+
                 )
                 session.add_all(
                     [about,
@@ -432,8 +491,13 @@ if __name__ == "__main__":
                 {
                     "vacancy_type": 0,
                     "position": "*М-Ментор на курс `Системный Администратор`*",
+<<<<<<< HEAD
+                    "time": "Договорный",
+                    "salary": "*15000 - 25000 com*",
+=======
                     "time": "Договорная",
                     "salary": "*350 - 450 $*",
+>>>>>>> fb26b2d0cf799d3791383d23fafe402c6e36d395
                     "details": '''Требования:
 
     ✅ Чёткое понимание и возможность объяснить зачем нужна эта должность
@@ -445,6 +509,7 @@ if __name__ == "__main__":
     ✅ Знание любового скриптового ЯП
     ✅ Навыки работы с СУБД приветствуется
     ✅ Комерческий опыт работы от 1-2х лет
+
 
 
 Обязанности:
@@ -470,4 +535,6 @@ if __name__ == "__main__":
             await session.execute(sys_admin_vacancy)
             await session.commit()
 
+
     asyncio.run(recreate_database())
+

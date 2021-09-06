@@ -1,5 +1,5 @@
 .vscode/
-venv/
+vevn/
 __pycache__/
 static/
 
@@ -9,3 +9,4 @@ ticket.txt
 .py
 
 *.drawio
+*.sql

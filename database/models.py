@@ -8,18 +8,23 @@ from sqlalchemy import (
     Integer, String, TIMESTAMP,
     SmallInteger, BigInteger, Text
 )
-from sqlalchemy.ext.declarative import declarative_base
+
 from sqlalchemy.orm import relationship
+from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql.expression import delete, insert
+from sqlalchemy.sql.sqltypes import TEXT, VARCHAR
+
 
 # Local application imports
 from database.settings import engine
+
 from configs.constants import (
     PYTHON_INFO_TEXT_RU, PYTHON_INFO_TEXT_KG,
     SYS_ADMIN_INFO_TEXT_RU, SYS_ADMIN_INFO_TEXT_KG,
     JAVASCRIPT_INFO_TEXT_RU, JAVASCRIPT_INFO_TEXT_KG,
     JAVA_INFO_TEXT_RU, JAVA_INFO_TEXT_KG,
-    ABOUT_COMPANY_RU, ABOUT_COMPANY_KG
+    ABOUT_COMPANY_RU, ABOUT_COMPANY_KG,
+    QUESTIONS
 )
 
 Base = declarative_base()
@@ -87,13 +92,20 @@ class Reception(BaseModel):
         default=1
     )
 
-    news = Column(
+    feedback = Column(
         Integer,
         nullable=False,
-        comment='How much times the NEWS button has been pressed',
+        comment="Feedback from student's",
         default=1
     )
 
+
+    test = Column(
+        Integer,
+        nullable=False,
+        comment="Test for human",
+        default=1
+    )
 
     def __repr__(self):
         return "<{0.__class__.__name__}(id={0.id!r})>".format(self)
@@ -111,7 +123,7 @@ class Department(BaseModel):
 
     customers = relationship('Customer', back_populates='department')
     courses = relationship('Course', back_populates='department')
-    news = relationship('News', back_populates='department')
+    feedbacks = relationship('Feedback', back_populates='department')
 
     def __repr__(self):
         return self.department_name
@@ -338,34 +350,86 @@ class VacancyApplicants(BaseModel):
         return f'{self.full_name} - {self.phone_number}'
 
 
-class News(BaseModel):
-    __tablename__ = 'news'
+class Feedback(BaseModel):
+    __tablename__ = 'feedback'
+
+    telegram_id = Column(
+        String,
+        nullable=False,
+        comment='Telegram ID of the person himself'
+    )
 
     department_id = Column(
         Integer,
         ForeignKey('department.id'),
-        nullable=False
+        nullable=False,
+        comment='The group in which he is studying'
     )
 
     department = relationship(
         "Department",
-        back_populates="news"
+        back_populates="feedbacks"
     )
 
-    news_source = Column(
-        String,
+    groups = Column(
+        Integer,
         nullable=False,
-        comment='The source where the statistic has been taken from'
+        comment='Training time in the morning/evening - 0/1'
     )
 
-    news_label = Column(
+    first_name = Column(
         String,
-        nullable=False,
-        comment='The header of an article'
+        nullable=True,
+        comment="Student's first name",
+        default='Empty'
+    )
+
+    last_name = Column(
+        String,
+        nullable=True,
+        comment="Student's last name",
+        default='Empty'
+    )
+
+    feedback_text = Column(
+        String,
+        comment="The student's review itself",
+        nullable=False
     )
 
     def __repr__(self):
-        return f'{self.department.department_name} - {self.news_label}'
+        return f'{self.department} - {self.first_name}'
+
+
+class TestQuestions(BaseModel):
+    __tablename__ = 'test_questions'
+
+    question = Column(
+        VARCHAR(255),
+        nullable=False,
+        comment='The question itself'
+    )
+
+    answers = Column(
+        TEXT,
+        nullable=False,
+        comment="4 possible answers"
+    )
+
+    true_answers = Column(
+        String,
+        nullable=False,
+        comment="The field with the CORRECT answer"
+    )
+
+    significance = Column(
+        Integer,
+        comment="Significance of the issue",
+        nullable=False
+    )
+
+    def __repr__(self):
+        return f'{self.question} - {self.true_answers}'
 
 
 if __name__ == "__main__":
@@ -392,6 +456,8 @@ if __name__ == "__main__":
                     apply=0, about_courses=0,
                     about_company=0, vacancies=0,
                     news=0
+                    feedback=0, about_company_text=ABOUT_COMPANY_RU
+
                 )
                 session.add_all(
                     [about,
@@ -425,7 +491,7 @@ if __name__ == "__main__":
                 {
                     "vacancy_type": 0,
                     "position": "*М-Ментор на курс `Системный Администратор`*",
-                    "time": "Договорный",
+                    "time": "Договорная",
                     "salary": "*350 - 450 $*",
                     "details": '''Требования:
 
@@ -447,10 +513,23 @@ if __name__ == "__main__":
                 }
             )
 
+            for question in QUESTIONS:
+                questions = insert(TestQuestions).values(
+                    {
+                        "question": question[0],
+                        "answers": question[1],
+                        "true_answers": question[2],
+                        "significance": question[3]
+                    }
+                )
+                await session.execute(questions)
+            
             await session.execute(python_info)
             await session.execute(sys_admin_info)
             await session.execute(javascript_info)
             await session.execute(sys_admin_vacancy)
             await session.commit()
 
+
     asyncio.run(recreate_database())
+

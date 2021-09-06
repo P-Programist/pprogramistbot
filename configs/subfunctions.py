@@ -1,12 +1,16 @@
+import asyncio
+
 import aiogram
-from sqlalchemy import update, insert
+
 from sqlalchemy.future import select
+from sqlalchemy import update, insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from buttons.inlines_buttons import ActiveVacancies
-from database.models import Reception, Vacancy, BishkekVacancy
 from database.settings import engine
-import asyncio
+from buttons.inlines_buttons import ActiveVacancies
+from database.models import Reception, Vacancy, BishkekVacancy, TestQuestions
+
+
 
 
 async def increment_at_reception(model, call):
@@ -78,7 +82,8 @@ async def update_object(model, object_attr, attr_value, data, *args):
     return data
 
 
-async def extract_our_vacancies(call) -> tuple:
+
+async def extract_pprogramist_vacancies(call) -> tuple:
     chat_id = call.message.chat.id
 
     async with AsyncSession(engine, expire_on_commit=False) as session:
@@ -126,7 +131,7 @@ async def extract_world_vacancies(call) -> tuple:
             lst = await session.execute(vacancy_list)
 
     data = lst.all()
-
+    
     if data:
         return (
             (
@@ -137,8 +142,9 @@ async def extract_world_vacancies(call) -> tuple:
     return data
 
 
-async def get_stats() -> tuple:
 
+async def get_stats() -> tuple:
+    '''There is MUST be Docstring'''
     async with AsyncSession(engine, expire_on_commit=False) as session:
         async with session.begin():
 
@@ -147,4 +153,28 @@ async def get_stats() -> tuple:
 
             data = lst.fetchone()[0]
             return {"apply": data.apply, "about_company": data.about_company, "about_courses": data.about_courses, "vacancies": data.vacancies}
+
+async def questions(call, question_id):
+    '''There is MUST be Docstring'''
+    chat_id = call.message.chat.id
+
+    async with AsyncSession(engine, expire_on_commit=False) as session:
+        async with session.begin():
+            question_list = select(TestQuestions).where(
+                TestQuestions.id == question_id
+            )
+
+            lst = await session.execute(question_list)
+    
+
+    data = lst.all()
+
+    if data:
+        return (
+            (
+                item[0].question, item[0].answers, item[0].true_answers, item[0].significance
+            ) for item in data
+        )
+
+    return data
 

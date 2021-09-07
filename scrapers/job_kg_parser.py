@@ -2,18 +2,18 @@ import ssl
 import re
 import requests
 import asyncio
+import time
+import schedule
 from sqlalchemy.sql.expression import delete
 from urllib3 import poolmanager
 from bs4 import BeautifulSoup as BS
 from database.models import (
     BishkekVacancy,
     engine,
-    Base,
     insert
 )
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.expression import delete
-
 
 from configs.constants import BISHKEK_SCRAPER_URL as url
 
@@ -159,4 +159,9 @@ async def filling_database(scraper):
 
 if __name__ == "__main__":
     scraper = Scraper(url)
-    asyncio.run(filling_database(scraper))
+    schedule.every(1).minutes.do(asyncio.run(filling_database(scraper)))
+
+    while True:
+        schedule.run_pending()
+
+        time.sleep(5)

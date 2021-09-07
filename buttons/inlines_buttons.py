@@ -100,28 +100,28 @@ class Departments(object):
         lang = await redworker.get_data(chat=self.chat_id)
 
         python = InlineKeyboardButton(
-            text='Python 🐍',
-            callback_data='python'
+            text="Python 🐍",
+            callback_data="python"
         )
         
         sys_admin = InlineKeyboardButton(
-            text='Системный администратор ⚙️',
-            callback_data='system_administrator'
+            text="Системный администратор ⚙️",
+            callback_data="system_administrator"
         )
 
         javascript = InlineKeyboardButton(
-            text='JavaScript 👨‍🎨',
-            callback_data='javascript'
+            text="JavaScript 👨‍🎨",
+            callback_data="javascript"
         )
 
         java = InlineKeyboardButton(
-            text='Java ⚒',
-            callback_data='java'
+            text="Java ⚒",
+            callback_data="java"
         )
 
         back_btn = InlineKeyboardButton(
             text=SPEECH["back" + lang],
-            callback_data='back_to_menu'
+            callback_data="back_to_menu"
         )
 
 
@@ -158,7 +158,12 @@ class GroupTime(object):
             callback_data=1
         )
 
-        self.markup.add(morning, evening)
+        back_btn = InlineKeyboardButton(
+            text=SPEECH["back" + lang],
+            callback_data='back'
+        )
+
+        self.markup.add(morning, evening, back_btn)
 
         return self.markup
 
@@ -201,6 +206,19 @@ class ActiveVacancies(object):
         )
 
         return markup
+
+    async def more_for_vacancy(self, vacancy_id):
+        markup = InlineKeyboardMarkup(row_width=1)
+        lang = await redworker.get_data(chat=self.chat_id)
+
+        more = InlineKeyboardButton(
+            text=SPEECH["more_detailed_btn" + lang],
+            callback_data=vacancy_id
+        )
+
+        markup.add(more)
+        return markup
+
 
     async def apply_for_vacancy(self, vacancy_id):
         markup = InlineKeyboardMarkup(row_width=1)

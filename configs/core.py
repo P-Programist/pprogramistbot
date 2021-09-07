@@ -23,7 +23,6 @@ point = RedisStorage2(
 )
 '''Таблица point хранит в себе баллы собранные пользователем'''
 
-
 time_question = RedisStorage2(
     host='127.0.0.1',
     db=4,
@@ -38,3 +37,12 @@ check = RedisStorage2(
     port=6379,
     password=REDIS_PASSWORD,
 )
+'''Таблица check хранит в себе ответы пользователя'''
+
+feedback_data = RedisStorage2(
+    host="127.0.0.1",
+    db=6,
+    port=6379,
+    password=REDIS_PASSWORD,
+)
+'''Таблица feedback_data хранит в себе данные пользователя, при этом созраняются они по этапно'''

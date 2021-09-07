@@ -99,7 +99,6 @@ class Reception(BaseModel):
         default=1
     )
 
-
     test = Column(
         Integer,
         nullable=False,
@@ -455,8 +454,7 @@ if __name__ == "__main__":
                 about = Reception(
                     apply=0, about_courses=0,
                     about_company=0, vacancies=0,
-                    news=0
-                    feedback=0, about_company_text=ABOUT_COMPANY_RU
+                    feedback=0
 
                 )
                 session.add_all(
@@ -491,13 +489,8 @@ if __name__ == "__main__":
                 {
                     "vacancy_type": 0,
                     "position": "*М-Ментор на курс `Системный Администратор`*",
-<<<<<<< HEAD
                     "time": "Договорный",
                     "salary": "*15000 - 25000 com*",
-=======
-                    "time": "Договорная",
-                    "salary": "*350 - 450 $*",
->>>>>>> fb26b2d0cf799d3791383d23fafe402c6e36d395
                     "details": '''Требования:
 
     ✅ Чёткое понимание и возможность объяснить зачем нужна эта должность

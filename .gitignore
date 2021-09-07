@@ -6,7 +6,7 @@ static/
 constants.py
 Dockerfile
 ticket.txt
-.py
+test.py
 
 *.drawio
 *.sql

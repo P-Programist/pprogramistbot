@@ -4,7 +4,7 @@ from configs.core import redworker
 
 
 class ConfirmNumber(object):
-    """docstring for ConfirmNumber."""
+    """This class is only responsible for generating one sigle button for Phone number confirmation."""
 
     def __init__(self, chat_id):
         super(ConfirmNumber, self).__init__()

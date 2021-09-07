@@ -4,24 +4,37 @@ import datetime
 
 # Third party imports
 from sqlalchemy import (
-    Column, ForeignKey,
-    Integer, String, TIMESTAMP,
-    SmallInteger, BigInteger, Text
+    Column,
+    ForeignKey,
+    Integer,
+    String,
+    TIMESTAMP,
+    SmallInteger,
+    BigInteger,
+    Text,
 )
 
-
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
-from sqlalchemy.sql.expression import insert
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.sql.expression import delete, insert
+from sqlalchemy.sql.sqltypes import TEXT, VARCHAR
+
 
 # Local application imports
 from database.settings import engine
+
 from configs.constants import (
-    PYTHON_INFO_TEXT_RU, PYTHON_INFO_TEXT_KG,
-    SYS_ADMIN_INFO_TEXT_RU, SYS_ADMIN_INFO_TEXT_KG,
-    JAVASCRIPT_INFO_TEXT_RU, JAVASCRIPT_INFO_TEXT_KG,
-    JAVA_INFO_TEXT_RU, JAVA_INFO_TEXT_KG,
-    ABOUT_COMPANY_RU, ABOUT_COMPANY_KG
+    PYTHON_INFO_TEXT_RU,
+    PYTHON_INFO_TEXT_KG,
+    SYS_ADMIN_INFO_TEXT_RU,
+    SYS_ADMIN_INFO_TEXT_KG,
+    JAVASCRIPT_INFO_TEXT_RU,
+    JAVASCRIPT_INFO_TEXT_KG,
+    JAVA_INFO_TEXT_RU,
+    JAVA_INFO_TEXT_KG,
+    ABOUT_COMPANY_RU,
+    ABOUT_COMPANY_KG,
+    QUESTIONS,
 )
 
 Base = declarative_base()
@@ -31,11 +44,7 @@ class BaseModel(Base):
     __abstract__ = True
 
     id = Column(
-        Integer,
-        nullable=False,
-        unique=True,
-        primary_key=True,
-        autoincrement=True
+        Integer, nullable=False, unique=True, primary_key=True, autoincrement=True
     )
 
     created_at = Column(
@@ -43,7 +52,7 @@ class BaseModel(Base):
         nullable=False,
         # It is forbidden to leave just -> datetime.datetime.now convert it to str first!
         server_default=str(datetime.datetime.now()),
-        comment='The date an object has been created'
+        comment="The date an object has been created",
     )
 
     updated_at = Column(
@@ -51,7 +60,7 @@ class BaseModel(Base):
         nullable=False,
         server_default=str(datetime.datetime.now()),
         onupdate=datetime.datetime.now,
-        comment='The date an object has been updated'
+        comment="The date an object has been updated",
     )
 
     def __repr__(self):
@@ -59,259 +68,267 @@ class BaseModel(Base):
 
 
 class Reception(BaseModel):
-    __tablename__ = 'reception'
+    __tablename__ = "reception"
 
     apply = Column(
         Integer,
         nullable=False,
-        comment='How much times the APPLY button has been pressed',
-        default=1
+        comment="How much times the APPLY button has been pressed",
+        default=1,
     )
 
     about_courses = Column(
         BigInteger,
         nullable=False,
-        comment='How much times the ABOUT_COURSES button has been pressed',
-        default=1
+        comment="How much times the ABOUT_COURSES button has been pressed",
+        default=1,
     )
 
     about_company = Column(
         Integer,
         nullable=False,
-        comment='How much times the ABOUT_COMPANY button has been pressed',
-        default=1
+        comment="How much times the ABOUT_COMPANY button has been pressed",
+        default=1,
     )
 
     vacancies = Column(
         BigInteger,
         nullable=False,
-        comment='How much times the VACANCIES button has been pressed',
-        default=1
+        comment="How much times the VACANCIES button has been pressed",
+        default=1,
     )
 
-    news = Column(
-        Integer,
-        nullable=False,
-        comment='How much times the NEWS button has been pressed',
-        default=1
+    feedback = Column(
+        Integer, nullable=False, comment="Feedback from student's", default=1
     )
 
-    about_company_text = Column(
-        Text,
-        nullable=False,
-        comment='The general information about company'
-    )
+    test = Column(Integer, nullable=False, comment="Test for human", default=1)
 
     def __repr__(self):
         return "<{0.__class__.__name__}(id={0.id!r})>".format(self)
 
 
 class Department(BaseModel):
-    __tablename__ = 'department'
+    __tablename__ = "department"
 
     department_name = Column(
-        String,
-        nullable=False,
-        unique=True,
-        comment='Programming language name'
+        String, nullable=False, unique=True, comment="Programming language name"
     )
 
-    customers = relationship('Customer', back_populates='department')
-    courses = relationship('Course', back_populates='department')
-    news = relationship('News', back_populates='department')
+    customers = relationship("Customer", back_populates="department")
+    courses = relationship("Course", back_populates="department")
+    feedbacks = relationship("Feedback", back_populates="department")
 
     def __repr__(self):
         return self.department_name
 
 
 class Customer(BaseModel):
-    __tablename__ = 'customer'
+    __tablename__ = "customer"
 
     chat_id = Column(
         Integer,
         nullable=False,
-        comment='The chat id of User who applied for registration'
+        comment="The chat id of User who applied for registration",
     )
 
     first_name = Column(
         String,
         nullable=False,
-        comment='How much times the apply button has been pressed'
+        comment="How much times the apply button has been pressed",
     )
 
     last_name = Column(
         String,
         nullable=True,
-        comment='How much times the apply button has been pressed'
+        comment="How much times the apply button has been pressed",
     )
 
     phone = Column(
         BigInteger,
         nullable=True,
-        comment='How much times the apply button has been pressed'
+        comment="How much times the apply button has been pressed",
     )
 
     time = Column(
         SmallInteger,
         nullable=True,
-        comment='The time when a group start to study. Morning or Evening'
+        comment="The time when a group start to study. Morning or Evening",
     )
 
     department_name = Column(
-        String,
-        ForeignKey('department.department_name'),
-        nullable=False
+        String, ForeignKey("department.department_name"), nullable=False
     )
 
-    department = relationship(
-        "Department",
-        back_populates="customers"
-    )
+    department = relationship("Department", back_populates="customers")
 
     def __repr__(self):
-        return f'{self.department_name} | {self.first_name} | {self.last_name}'
+        return f"{self.department_name} | {self.first_name} | {self.last_name}"
 
 
 class Course(BaseModel):
-    __tablename__ = 'course'
+    __tablename__ = "course"
 
-    department_id = Column(
-        Integer,
-        ForeignKey('department.id'),
-        nullable=False
-    )
+    department_id = Column(Integer, ForeignKey("department.id"), nullable=False)
 
-    department = relationship(
-        "Department",
-        back_populates="courses"
-    )
+    department = relationship("Department", back_populates="courses")
 
     department_info = Column(
-        Text,
-        nullable=False,
-        comment='The information about course'
+        Text, nullable=False, comment="The information about course"
     )
 
     def __repr__(self):
-        return f'{self.department}'
+        return f"{self.department}"
 
 
 class Vacancy(BaseModel):
-    __tablename__ = 'vacancy'
+    __tablename__ = "vacancy"
 
     vacancy_type = Column(
         SmallInteger,
         nullable=False,
-        comment='If VACANCY_TYPE = 0 it means that vacancy provided by P-Programist, otherwise the vacancy provided by another resource'
+        comment="If VACANCY_TYPE = 0 it means that vacancy provided by P-Programist, otherwise the vacancy provided by another resource",
     )
 
-    position = Column(
-        String,
-        nullable=False,
-        comment='The header of vacancy'
-    )
+    position = Column(String, nullable=False, comment="The header of vacancy")
 
-    time = Column(
-        String,
-        nullable=False,
-        comment='The time of lesson'
-    )
+    time = Column(String, nullable=False, comment="The time of lesson")
 
-    salary = Column(
-        String,
-        nullable=False,
-        comment='The salary of a mentor'
-    )
+    salary = Column(String, nullable=False, comment="The salary of a mentor")
 
-    details = Column(
-        Text,
-        nullable=False,
-        comment='These are the details of vacancy'
-    )
+    details = Column(Text, nullable=False, comment="These are the details of vacancy")
 
     # This line is binded with the VACANCY field in VacancyApplicants class.
-    applicants = relationship('VacancyApplicants', back_populates='vacancy')
+    applicants = relationship("VacancyApplicants", back_populates="vacancy")
 
     def __repr__(self):
-        return f'{self.position}'
+        return self.position
+
+
+class BishkekVacancy(BaseModel):
+    """
+    Эта модель создана специально для записи данных о вакансий по городу Бишкек
+    с сайта "https://www.job.kg/" при помощи парсера "job_kg_parser.py".
+    Она содержит поля:
+    header -> Название вакансии
+    company_name -> Название компании-работодателя
+    required_experience -> Требуемый опыт работы
+    salary -> Зарплата
+    schedule -> Занятость в день
+    details -> Подробное описание
+    type -> Тип вакансии: Python/JavaScript/*еще что-то*...
+    """
+
+    __tablename__ = "bishkek_vacancy"
+
+    header = Column(String, nullable=False, comment="The name of vacancy")
+
+    company_name = Column(String, nullable=False, comment="The name of company")
+
+    required_experience = Column(
+        String, nullable=False, comment="Required work experience"
+    )
+
+    salary = Column(String, nullable=False, comment="The salary of a worker")
+
+    schedule = Column(String, nullable=False, comment="The schedule of a work")
+
+    details = Column(
+        Text, nullable=False, comment="These are the description of vacancy"
+    )
+
+    type = Column(
+        String,
+        nullable=True,
+        comment="These are the type of vacancy(Example: Python, JavaScript...)",
+    )
+
+    def __repr__(self):
+        return self.header
 
 
 class VacancyApplicants(BaseModel):
-    __tablename__ = 'vacancy_applicants'
+    __tablename__ = "vacancy_applicants"
 
-    vacancy_id = Column(
-        Integer,
-        ForeignKey('vacancy.id'),
-        nullable=False
-    )
+    vacancy_id = Column(Integer, ForeignKey("vacancy.id"), nullable=False)
 
-    vacancy = relationship(
-        "Vacancy",
-        back_populates="applicants"
-    )
+    vacancy = relationship("Vacancy", back_populates="applicants")
 
     chat_id = Column(
-        Integer,
-        nullable=False,
-        comment='The chat id of User who applied for vacancy'
+        Integer, nullable=False, comment="The chat id of User who applied for vacancy"
     )
 
-    full_name = Column(
-        String,
-        nullable=True,
-        comment='The full name of applicant'
-    )
+    full_name = Column(String, nullable=True, comment="The full name of applicant")
 
     cover_letter = Column(
         Text,
         nullable=True,
-        comment='This cover letter has to be written in order to see applicants\'s interests'
+        comment="This cover letter has to be written in order to see applicants's interests",
     )
 
     github_link = Column(
-        String,
-        nullable=True,
-        comment='A GitHub link to check applicant\'s experience'
+        String, nullable=True, comment="A GitHub link to check applicant's experience"
     )
 
     phone_number = Column(
-        BigInteger,
-        nullable=True,
-        comment='The contact number of applicant'
+        BigInteger, nullable=True, comment="The contact number of applicant"
     )
 
     def __repr__(self):
-        return f'{self.full_name} - {self.phone_number}'
+        return f"{self.full_name} - {self.phone_number}"
 
 
-class News(BaseModel):
-    __tablename__ = 'news'
+class Feedback(BaseModel):
+    __tablename__ = "feedback"
+
+    telegram_id = Column(
+        String, nullable=False, comment="Telegram ID of the person himself"
+    )
 
     department_id = Column(
         Integer,
-        ForeignKey('department.id'),
-        nullable=False
-    )
-
-    department = relationship(
-        "Department",
-        back_populates="news"
-    )
-
-    news_source = Column(
-        String,
+        ForeignKey("department.id"),
         nullable=False,
-        comment='The source where the statistic has been taken from'
+        comment="The group in which he is studying",
     )
 
-    news_label = Column(
-        String,
-        nullable=False,
-        comment='The header of an article'
+    department = relationship("Department", back_populates="feedbacks")
+
+    groups = Column(
+        Integer, nullable=False, comment="Training time in the morning/evening - 0/1"
+    )
+
+    first_name = Column(
+        String, nullable=True, comment="Student's first name", default="Empty"
+    )
+
+    last_name = Column(
+        String, nullable=True, comment="Student's last name", default="Empty"
+    )
+
+    feedback_text = Column(
+        String, comment="The student's review itself", nullable=False
     )
 
     def __repr__(self):
-        return f'{self.department.department_name} - {self.news_label}'
+        return f"{self.department} - {self.first_name}"
+
+
+class TestQuestions(BaseModel):
+    __tablename__ = "test_questions"
+
+    question = Column(VARCHAR(255), nullable=False, comment="The question itself")
+
+    answers = Column(TEXT, nullable=False, comment="4 possible answers")
+
+    true_answers = Column(
+        String, nullable=False, comment="The field with the CORRECT answer"
+    )
+
+    significance = Column(Integer, comment="Significance of the issue", nullable=False)
+
+    def __repr__(self):
+        return f"{self.question} - {self.true_answers}"
 
 
 if __name__ == "__main__":
@@ -319,52 +336,43 @@ if __name__ == "__main__":
     from sqlalchemy.ext.asyncio import AsyncSession
 
     async def recreate_database():
-        '''
-            When you want to set a connection with the database,
-            You have to call the .begin() method from engine.
-            After this method initialized You will get asynchronous connection with database.
-        '''
+        """
+        When you want to set a connection with the database,
+        You have to call the .begin() method from engine.
+        After this method initialized You will get asynchronous connection with database.
+        """
         async with engine.begin() as connection:
             await connection.run_sync(Base.metadata.drop_all)
             await connection.run_sync(Base.metadata.create_all)
 
         async with AsyncSession(engine, expire_on_commit=False) as session:
             async with session.begin():
-                python = Department(id=1, department_name='Python')
-                sys_admin = Department(
-                    id=2, department_name='System Administrator')
-                javascript = Department(id=3, department_name='Javascript')
-                java = Department(id=4, department_name='Java')
+                python = Department(id=1, department_name="Python")
+                sys_admin = Department(id=2, department_name="System Administrator")
+                javascript = Department(id=3, department_name="Javascript")
+                java = Department(id=4, department_name="Java")
                 about = Reception(
-                    apply=0, about_courses=0,
-                    about_company=0, vacancies=0,
-                    news=0, about_company_text=ABOUT_COMPANY_RU
+                    apply=0,
+                    about_courses=0,
+                    about_company=0,
+                    vacancies=0,
+                    feedback=0,
                 )
-                session.add_all(
-                    [about,
-                        python,
-                        sys_admin,
-                        javascript,
-                        java
-                     ]
-                )
+                session.add_all([about, python, sys_admin, javascript, java])
 
             python_info = insert(Course).values(
-                {
-                    "department_info": PYTHON_INFO_TEXT_RU,
-                    "department_id": python.id
-                }
+                {"department_info": PYTHON_INFO_TEXT_RU, "department_id": python.id}
             )
             sys_admin_info = insert(Course).values(
                 {
                     "department_info": SYS_ADMIN_INFO_TEXT_RU,
-                    "department_id": sys_admin.id
+                    "department_id": sys_admin.id,
                 }
             )
             javascript_info = insert(Course).values(
                 {
                     "department_info": JAVASCRIPT_INFO_TEXT_RU,
-                    "department_id": javascript.id
+                    "department_id": javascript.id,
                 }
             )
 
@@ -373,8 +381,8 @@ if __name__ == "__main__":
                     "vacancy_type": 0,
                     "position": "*М-Ментор на курс `Системный Администратор`*",
                     "time": "Договорный",
-                    "salary": "*350 - 450 $*",
-                    "details": '''Требования:
+                    "salary": "*15000 - 25000 com*",
+                    "details": """Требования:
 
     ✅ Чёткое понимание и возможность объяснить зачем нужна эта должность
     ✅ Опыт администрирования операционных систем Linux и Windows Server
@@ -387,11 +395,23 @@ if __name__ == "__main__":
     ✅ Комерческий опыт работы от 1-2х лет
 
 
+
 Обязанности:
     ⚜️ Разработка и поддержка учебного плана
-    ⚜️ Обучение студентов, проведение занятий'''
+    ⚜️ Обучение студентов, проведение занятий""",
                 }
             )
+
+            for question in QUESTIONS:
+                questions = insert(TestQuestions).values(
+                    {
+                        "question": question[0],
+                        "answers": question[1],
+                        "true_answers": question[2],
+                        "significance": question[3],
+                    }
+                )
+                await session.execute(questions)
 
             await session.execute(python_info)
             await session.execute(sys_admin_info)
@@ -400,7 +420,3 @@ if __name__ == "__main__":
             await session.commit()
 
     asyncio.run(recreate_database())
-
-
-
-

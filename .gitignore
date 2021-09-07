@@ -1,9 +1,13 @@
 .vscode/
-vevn/
+venv/
 __pycache__/
 static/
+venv
 
 constants.py
 Dockerfile
+ticket.txt
+.py
 
 *.drawio
+*.sql

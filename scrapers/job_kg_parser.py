@@ -1,21 +1,27 @@
-import ssl
-import re
-import requests
+# Standard library imports
+import time
 import asyncio
-from sqlalchemy.sql.expression import delete
+
+# Third party imports
+import requests
+import re
+import ssl
 from urllib3 import poolmanager
 from bs4 import BeautifulSoup as BS
-from database.models import (
-    BishkekVacancy,
-    engine,
-    Base,
-    insert
-)
+
+#SQL Alchemy
+from sqlalchemy.sql.expression import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.expression import delete
 
-
+# Local application imports
+from database.models import (
+    BishkekVacancy,
+    engine,
+    insert
+)
 from configs.constants import BISHKEK_SCRAPER_URL as url
+
 
 
 class TLSAdapter(requests.adapters.HTTPAdapter):
@@ -95,8 +101,12 @@ class Scraper:
                 except:
                     descriptions.append(detail_soup.find(
                         'div', class_="details-").text.replace('\xa0', ' ').strip())
-                company_names.append(detail_soup.find(
-                    'div', class_="employer- clearfix").p.b.a.text)
+                try:
+                    company_names.append(detail_soup.find(
+                        'div', class_="employer- clearfix").p.b.a.text)
+                except AttributeError:
+                    company_names.append(detail_soup.find(
+                        'div', class_="employer- clearfix").p.b.text)
                 elements_of_kasha = re.split(
                     '<dt>|</dt>|<dd>|</dd>', str(detail_soup.find('div', class_="vvloa-box").dl))
                 if "Опыт" in elements_of_kasha:
@@ -159,4 +169,8 @@ async def filling_database(scraper):
 
 if __name__ == "__main__":
     scraper = Scraper(url)
-    asyncio.run(filling_database(scraper))
+    loop = asyncio.get_event_loop()
+    while True:
+        loop.run_until_complete(filling_database(scraper))
+        time.sleep(3000)
+

@@ -279,6 +279,16 @@ class VacancyApplicants(BaseModel):
 
 
 class Feedback(BaseModel):
+    """
+    Эта модель создана для записи отзывов, учеников курсов.
+    Она содержит поля:
+    telegram_id -> Телеграмм ID пользователя
+    department_id -> Что обучает пользоваетль Python/JavaScript
+    groups -> В какую смену обучается Утренняя/Вечерняя
+    first_name -> Имя пользователя
+    last_name -> Фамилия пользователя
+    feedback_text -> Сам отзыв
+    """
     __tablename__ = "feedback"
 
     telegram_id = Column(
@@ -315,6 +325,14 @@ class Feedback(BaseModel):
 
 
 class TestQuestions(BaseModel):
+    """
+    Эта модель создана для хранения вопросов.
+    Она содержит поля:
+    question -> Сам вопрос
+    answers -> Варианты ответа
+    true_answers -> Какой из них проваильный
+    significance -> Сколько дает баллов тот или иной вопрос
+    """
     __tablename__ = "test_questions"
 
     question = Column(VARCHAR(255), nullable=False, comment="The question itself")
@@ -352,11 +370,18 @@ if __name__ == "__main__":
                 javascript = Department(id=3, department_name="Javascript")
                 java = Department(id=4, department_name="Java")
                 about = Reception(
-                    apply=0,
-                    about_courses=0,
-                    about_company=0,
-                    vacancies=0,
-                    feedback=0,
+                    apply=0, about_courses=0,
+                    about_company=0, vacancies=0,
+                    feedback=0
+
+                )
+                session.add_all(
+                    [about,
+                        python,
+                        sys_admin,
+                        javascript,
+                        java
+                     ]
                 )
                 session.add_all([about, python, sys_admin, javascript, java])
 

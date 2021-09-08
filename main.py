@@ -1,5 +1,5 @@
 # Standard library imports
-from datetime import datetime 
+from datetime import datetime, timedelta
 
 # Third party imports
 from aiogram import executor
@@ -28,11 +28,12 @@ from buttons.inlines_buttons import (
 )
 from buttons.text_buttons import ConfirmNumber
 from configs import constants, states, subfunctions
-from configs.core import redworker, storage, point, check, time_question
+from configs.core import redworker, storage, point, check, time_question, feedback_data
 from database.settings import engine
 from database.models import (
     Course,
     Customer,
+    Feedback,
     Reception,
     Department,
     Vacancy,
@@ -157,6 +158,7 @@ async def reception(call: CallbackQuery):
                 reply_markup=await DepartmentFeedback(chat_id).departments_buttons(),
                 parse_mode=ParseMode.MARKDOWN,
             )
+            await feedback_data.set_data(chat=chat_id, data= None)
 
             return await states.BotStates.add_feedback.set()
 
@@ -209,12 +211,12 @@ async def set_time_for_course(call: CallbackQuery):
     If the User has already applied for a course, he can't apply again for the 3 following days.
     If the User is new we write him into the database to connect to him later.
     """
-
+    
     if call.data:
 
         chat_id = call.message.chat.id
         lang = await redworker.get_data(chat=call.message.chat.id)
-
+    
         # If User pressed "Back" button - return him to main menu
         if call.data == "back_to_menu":
             await call.message.edit_text(
@@ -229,7 +231,8 @@ async def set_time_for_course(call: CallbackQuery):
         user = await subfunctions.object_exists(Customer, attr, chat_id)
 
         if user:
-            if not user.phone:    ##############!!!!!!!!!!!!!!!!!######### тут надо будет убрать not 
+            time_range = timedelta(hours=24)
+            if user.phone and user.updated_at + time_range > datetime.now(): 
                 # If we find the User in database - that means he already applied for the last 3 days
                 f_name, dp_name = user.first_name, user.department_name
 
@@ -250,6 +253,18 @@ async def set_time_for_course(call: CallbackQuery):
 
                 return await states.BotStates.main_menu.set()
             else:
+                user_id = getattr(Customer, "id")
+                department_name = " ".join(call.data.split("_")).title()
+
+                await subfunctions.update_object(
+                    Customer,
+                    user_id,
+                    user.id,
+                    {
+                        "department_name": department_name
+                    }
+                )
+
                 await call.message.edit_text(
                     text=constants.SPEECH["choose_group_time" + lang],
                     reply_markup=await GroupTime(chat_id).group_time_buttons(),
@@ -288,7 +303,6 @@ async def set_time_for_course(call: CallbackQuery):
 async def confirm_number_to_apply(call: CallbackQuery):
     chat_id = call.message.chat.id
     lang = await redworker.get_data(chat=chat_id)
-
     if call.data and call.data.isdigit():
         attr = getattr(Customer, "chat_id")
         user = await subfunctions.object_exists(Customer, attr, chat_id)
@@ -311,6 +325,15 @@ async def confirm_number_to_apply(call: CallbackQuery):
 
         return await states.BotStates.confirm_number_for_applying.set()
 
+    elif call.data == 'back':
+        await call.message.edit_text(
+            text=constants.SPEECH["choose_course" + lang],
+            reply_markup=await Departments(chat_id).departments_buttons(back=True),
+            parse_mode=ParseMode.MARKDOWN,
+        )
+
+        return await states.BotStates.apply_for_course.set()
+        
 
 @dp.message_handler(
     content_types=["text", "contact"],
@@ -343,8 +366,8 @@ async def complete_applying(message: Message):
             parse_mode=ParseMode.MARKDOWN,
         )
 
-        with open(constants.WELCOME_TO_THE_CLUB_BUDDY, "rb") as video:
-            await message.answer_video(video=video)
+        # with open(constants.WELCOME_TO_THE_CLUB_BUDDY, "rb") as video:
+        #     await message.answer_video(video=video)
 
         await message.answer(
             text=constants.SPEECH["main_menu" + lang],
@@ -493,18 +516,40 @@ async def vacancy_list(call: CallbackQuery):
 💻 Должность:  {text[0]}\n
 🕴 Работодатель: {text[5]}\n
 💲 Зарплата: {text[1]}\n\n
-{text[2][:330]}...\n\n
-🧠 Требуемый опыт работы: {text[3]}\n
-🕙 Занятость: {text[4]}\n
-        """)) for text in vacancies_list]
+        """, reply_markup=await ActiveVacancies(chat_id).more_for_vacancy(text[6]))) for text in vacancies_list]
         
     await call.message.answer(
            text=constants.SPEECH["back_to_vacancies" + lang],
            reply_markup=await MainMenu(chat_id).step_back(),
            parse_mode=ParseMode.MARKDOWN,
        )
-    return await states.BotStates.local_vacancies.set()
+    return await states.BotStates.more_detailed_vac.set()
 
+@dp.callback_query_handler(state=states.BotStates.more_detailed_vac)
+async def vacancy_more(call: CallbackQuery):
+    chat_id = call.message.chat.id
+    lang = await redworker.get_data(chat=chat_id)
+
+    if call.data == "back":
+        await call.message.edit_text(
+            text=constants.SPEECH["main_menu" + lang],
+            reply_markup=await MainMenu(chat_id).main_menu_buttons(str(chat_id) in student_vr),
+            parse_mode=ParseMode.MARKDOWN,
+        )
+
+        return await states.BotStates.main_menu.set()
+
+    else:
+        vacancies_more = await subfunctions.more_text(call, call.data)
+        [(await call.message.edit_text(text=f"""
+    💻 Должность:  {text[0]}\n
+    🕴 Работодатель: {text[5]}\n
+    💲 Зарплата: {text[1]}\n\n
+    {text[2][:330]}...\n\n
+    🧠 Требуемый опыт работы: {text[3]}\n
+    🕙 Занятость: {text[4]}\n
+            """)) for text in vacancies_more]
+        
 
 
 @dp.callback_query_handler(state=states.BotStates.local_vacancies)
@@ -689,26 +734,24 @@ async def check_group(call: CallbackQuery):
     chat_id = call.message.chat.id
     lang = await redworker.get_data(chat=chat_id)
 
-    if call.data == "python2":
-        await call.message.edit_text(
-            text=constants.SPEECH["changes_time" + lang],
-            reply_markup=await FeedbackSchedule(chat_id).group_times(),
-            parse_mode=ParseMode.MARKDOWN,
-        )
-    elif call.data == "javascript2":
-        await call.message.edit_text(
-            text=constants.SPEECH["changes_time" + lang],
-            reply_markup=await FeedbackSchedule(chat_id).group_times(),
-            parse_mode=ParseMode.MARKDOWN,
-        )
-    elif call.data == "back":
+    if call.data == "back":
         await call.message.edit_text(
             text=constants.SPEECH["main_menu" + lang],
             reply_markup=await MainMenu(chat_id).main_menu_buttons(str(chat_id) in student_vr),
             parse_mode=ParseMode.MARKDOWN,
         )
-
         return await states.BotStates.main_menu.set()
+
+    if call.data == "python2":
+        await feedback_data.set_data(chat=chat_id, data=(chat_id, 1, 'groups', call.message.chat.first_name, call.message.chat.last_name, 'f_text'))
+    elif call.data == "javascript2":
+        await feedback_data.set_data(chat=chat_id, data=(chat_id, 3, 'groups', call.message.chat.first_name, call.message.chat.last_name, 'f_text'))
+
+    await call.message.edit_text(
+        text=constants.SPEECH["changes_time" + lang],
+        reply_markup=await FeedbackSchedule(chat_id).group_times(),
+        parse_mode=ParseMode.MARKDOWN,
+    )
     return await states.BotStates.choose_times.set()
 
 
@@ -716,18 +759,17 @@ async def check_group(call: CallbackQuery):
 async def choose_times_gr(call: CallbackQuery):
     chat_id = call.message.chat.id
     lang = await redworker.get_data(chat=chat_id)
+    feedback_tb = await feedback_data.get_data(chat=chat_id)
 
     if call.data == "0":
-        await call.message.edit_text(
-            text=constants.SPEECH["feedback" + lang],
-            parse_mode=ParseMode.MARKDOWN,
-        )
+        await feedback_data.set_data(chat=chat_id, data=(feedback_tb[0], feedback_tb[1], 0, feedback_tb[3], feedback_tb[4], 'f_text'))
     elif call.data == "1":
-        await call.message.edit_text(
+        await feedback_data.set_data(chat=chat_id, data=(feedback_tb[0], feedback_tb[1], 1, feedback_tb[3], feedback_tb[4], 'f_text'))
+
+    await call.message.edit_text(
             text=constants.SPEECH["feedback" + lang],
             parse_mode=ParseMode.MARKDOWN,
         )
-
     return await states.BotStates.feedback_text.set()
 
 
@@ -735,11 +777,24 @@ async def choose_times_gr(call: CallbackQuery):
 async def feedback_text(message: Message):
     chat_id = message.chat.id
     lang = await redworker.get_data(chat=chat_id)
+    feedback_tb = await feedback_data.get_data(chat=chat_id)
 
-    # print(message.text)
+    await feedback_data.set_data(chat=chat_id, data=(feedback_tb[0], feedback_tb[1], feedback_tb[2], feedback_tb[3], feedback_tb[4], message.text))
+    data_in_tables = await feedback_data.get_data(chat=chat_id)
+
+    data = {
+        "telegram_id": str(data_in_tables[0]),
+        "department_id": data_in_tables[1],
+        "groups": data_in_tables[2],
+        "first_name": data_in_tables[3],
+        "last_name": data_in_tables[4] if data_in_tables[4] else '',
+        "feedback_text": data_in_tables[5],
+    }
+
+    await subfunctions.insert_feedback(Feedback, data)
 
     await message.answer(
-        text=constants.SPEECH["main_menu" + lang],
+        text=f'{constants.SPEECH["feedback_answer" + lang]} \n{constants.SPEECH["main_menu" + lang]}',
         reply_markup=await MainMenu(chat_id).main_menu_buttons(str(chat_id) in student_vr),
         parse_mode=ParseMode.MARKDOWN,
     )
@@ -814,7 +869,7 @@ async def questions(call: CallbackQuery):
     return await states.BotStates.start_test.set()
 
 @dp.callback_query_handler(state=states.BotStates.choose_answer)
-async def questions(call: CallbackQuery):
+async def check_questions(call: CallbackQuery):
     '''В этой функции проверяется правильно ли он ответил на тот или иной вопрос, 
     далее все баллы подсчитиваютя и отправляются пользователю.'''
 

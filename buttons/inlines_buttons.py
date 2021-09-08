@@ -141,7 +141,12 @@ class GroupTime(object):
             text=SPEECH["evening_group" + lang], callback_data=1
         )
 
-        self.markup.add(morning, evening)
+        back_btn = InlineKeyboardButton(
+            text=SPEECH["back" + lang],
+            callback_data='back'
+        )
+
+        self.markup.add(morning, evening, back_btn)
 
         return self.markup
 
@@ -174,6 +179,19 @@ class ActiveVacancies(object):
         markup.add(company, city, foreign, back_btn)
 
         return markup
+
+    async def more_for_vacancy(self, vacancy_id):
+        markup = InlineKeyboardMarkup(row_width=1)
+        lang = await redworker.get_data(chat=self.chat_id)
+
+        more = InlineKeyboardButton(
+            text=SPEECH["more_detailed_btn" + lang],
+            callback_data=vacancy_id
+        )
+
+        markup.add(more)
+        return markup
+
 
     async def apply_for_vacancy(self, vacancy_id):
         markup = InlineKeyboardMarkup(row_width=1)

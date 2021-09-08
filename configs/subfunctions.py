@@ -133,13 +133,23 @@ async def extract_bishkek_vacancies() -> list:
 
     async with AsyncSession(engine, expire_on_commit=False) as session:
         async with session.begin():
-            vacancy_list = select(
-                BishkekVacancy.header,
-                BishkekVacancy.salary,
-                BishkekVacancy.details,
-                BishkekVacancy.required_experience,
-                BishkekVacancy.schedule,
-                BishkekVacancy.company_name,
+            vacancy_list = select(BishkekVacancy.header, BishkekVacancy.salary, BishkekVacancy.details, BishkekVacancy.required_experience, BishkekVacancy.schedule, BishkekVacancy.company_name, BishkekVacancy.id)
+
+            lst = await session.execute(vacancy_list)
+
+            data = [i for i in lst.fetchall()]
+
+            return data[:10]
+
+
+async def more_text(call, question_id):
+    '''There is MUST be Docstring'''
+    chat_id = call.message.chat.id
+
+    async with AsyncSession(engine, expire_on_commit=False) as session:
+        async with session.begin():
+            vacancy_list = select(BishkekVacancy.header, BishkekVacancy.salary, BishkekVacancy.details, BishkekVacancy.required_experience, BishkekVacancy.schedule, BishkekVacancy.company_name, BishkekVacancy.id).where(
+                BishkekVacancy.id == int(question_id[0])
             )
 
             lst = await session.execute(vacancy_list)
@@ -190,7 +200,7 @@ async def get_stats() -> tuple:
 
 
 async def questions(call, question_id):
-    """There is MUST be Docstring"""
+    """Данная функция возвращает вопрос, ответы, какой из них правильный и сколько баллов можно заработать, зависит от ID переданное при вызове."""
     chat_id = call.message.chat.id
 
     async with AsyncSession(engine, expire_on_commit=False) as session:
@@ -211,5 +221,14 @@ async def questions(call, question_id):
             )
             for item in data
         )
+
+    return data
+
+async def insert_feedback(model, data):
+    request = insert(model).values(data)
+
+    async with AsyncSession(engine) as session:
+        async with session.begin():
+            await session.execute(request)
 
     return data

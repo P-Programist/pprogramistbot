@@ -1,7 +1,8 @@
 .vscode/
-vevn/
+venv/
 __pycache__/
 static/
+venv
 
 constants.py
 Dockerfile

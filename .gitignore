@@ -1,9 +1,11 @@
 .vscode/
-vevn/
+venv/
 __pycache__/
 static/
 
 constants.py
 Dockerfile
+ticket.txt
+
 
 *.drawio

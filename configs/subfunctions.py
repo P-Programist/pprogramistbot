@@ -1,12 +1,16 @@
+import asyncio
+
 import aiogram
-from sqlalchemy import update, insert
+
 from sqlalchemy.future import select
+from sqlalchemy import update, insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from buttons.inlines_buttons import ActiveVacancies
-from database.models import Reception, Vacancy, BishkekVacancy
 from database.settings import engine
-import asyncio
+from buttons.inlines_buttons import ActiveVacancies
+from database.models import Reception, Vacancy, BishkekVacancy, WorldVacancy, TestQuestions
+
+
 
 
 async def increment_at_reception(model, call):
@@ -55,7 +59,7 @@ async def object_exists(model, attr_name, attr_value, *args):
     return obj if obj else []
 
 
-async def insert_object(model, data, call):
+async def insert_object(model, data, call=None):
     request = insert(model).values(data)
 
     async with AsyncSession(engine) as session:
@@ -78,7 +82,8 @@ async def update_object(model, object_attr, attr_value, data, *args):
     return data
 
 
-async def extract_our_vacancies(call) -> tuple:
+
+async def extract_pprogramist_vacancies(call) -> tuple:
     chat_id = call.message.chat.id
 
     async with AsyncSession(engine, expire_on_commit=False) as session:
@@ -116,29 +121,35 @@ async def extract_bishkek_vacancies()->list:
             return data[:10]
 
 
-async def extract_world_vacancies(call) -> tuple:
-    chat_id = call.message.chat.id
+async def extract_world_vacancies(type, step=0, call=None) -> tuple:
+    """
+    This function extracts data from the fields specified in «select» and displays the first 10 of them.
+    Эта функция извлекает данные из полей, указанных в «select», и отображает первые 10 из них.
+    """
 
     async with AsyncSession(engine, expire_on_commit=False) as session:
         async with session.begin():
-            vacancy_list = select(BishkekVacancy)
+            vacancy_list = select(WorldVacancy.header, WorldVacancy.price, WorldVacancy.description, WorldVacancy.tags, WorldVacancy.post_time, WorldVacancy.link, WorldVacancy.type)
 
             lst = await session.execute(vacancy_list)
 
-    data = lst.all()
+            data = [i for i in lst.fetchall() if i[6] == type]
 
-    if data:
-        return (
-            (
-                item[0].header, await ActiveVacancies(chat_id).apply_for_vacancy(item[0].id)
-            ) for item in data
-        )
+            if step:
+                step *= 10
+            else:
+                step += 10
+            final = []
+            index = step - 10
+            while index < len(data) and index < step:
+                final.append(data[index])
+                index += 1
+            return final
 
-    return data
 
 
 async def get_stats() -> tuple:
-
+    '''There is MUST be Docstring'''
     async with AsyncSession(engine, expire_on_commit=False) as session:
         async with session.begin():
 
@@ -147,4 +158,28 @@ async def get_stats() -> tuple:
 
             data = lst.fetchone()[0]
             return {"apply": data.apply, "about_company": data.about_company, "about_courses": data.about_courses, "vacancies": data.vacancies}
+
+async def questions(call, question_id):
+    '''There is MUST be Docstring'''
+    chat_id = call.message.chat.id
+
+    async with AsyncSession(engine, expire_on_commit=False) as session:
+        async with session.begin():
+            question_list = select(TestQuestions).where(
+                TestQuestions.id == question_id
+            )
+
+            lst = await session.execute(question_list)
+    
+
+    data = lst.all()
+
+    if data:
+        return (
+            (
+                item[0].question, item[0].answers, item[0].true_answers, item[0].significance
+            ) for item in data
+        )
+
+    return data
 

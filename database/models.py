@@ -8,18 +8,24 @@ from sqlalchemy import (
     Integer, String, TIMESTAMP,
     SmallInteger, BigInteger, Text
 )
-from sqlalchemy.ext.declarative import declarative_base
+
 from sqlalchemy.orm import relationship
-from sqlalchemy.sql.expression import insert
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.sql.expression import delete, insert
+from sqlalchemy.sql.functions import current_date
+from sqlalchemy.sql.sqltypes import TEXT, VARCHAR, Boolean
+
 
 # Local application imports
 from database.settings import engine
+
 from configs.constants import (
     PYTHON_INFO_TEXT_RU, PYTHON_INFO_TEXT_KG,
     SYS_ADMIN_INFO_TEXT_RU, SYS_ADMIN_INFO_TEXT_KG,
     JAVASCRIPT_INFO_TEXT_RU, JAVASCRIPT_INFO_TEXT_KG,
     JAVA_INFO_TEXT_RU, JAVA_INFO_TEXT_KG,
-    ABOUT_COMPANY_RU, ABOUT_COMPANY_KG
+    ABOUT_COMPANY_RU, ABOUT_COMPANY_KG,
+    QUESTIONS
 )
 
 Base = declarative_base()
@@ -87,13 +93,19 @@ class Reception(BaseModel):
         default=1
     )
 
-    news = Column(
+    feedback = Column(
         Integer,
         nullable=False,
-        comment='How much times the NEWS button has been pressed',
+        comment="Feedback from student's",
         default=1
     )
 
+    test = Column(
+        Integer,
+        nullable=False,
+        comment="Test for human",
+        default=1
+    )
 
     def __repr__(self):
         return "<{0.__class__.__name__}(id={0.id!r})>".format(self)
@@ -111,7 +123,7 @@ class Department(BaseModel):
 
     customers = relationship('Customer', back_populates='department')
     courses = relationship('Course', back_populates='department')
-    news = relationship('News', back_populates='department')
+    feedbacks = relationship('Feedback', back_populates='department')
 
     def __repr__(self):
         return self.department_name
@@ -163,6 +175,64 @@ class Customer(BaseModel):
 
     def __repr__(self):
         return f'{self.department_name} | {self.first_name} | {self.last_name}'
+
+
+class User(BaseModel):
+    __tablename__ = 'users'
+
+    chat_id = Column(
+        Integer,
+        nullable=False,
+        comment='chat_id'
+    )
+
+    username = Column(
+        String,
+        nullable=False,
+        comment='Username'
+    )
+
+    first_name = Column(
+        String,
+        nullable=True,
+        comment='First name'
+    )
+
+    last_name = Column(
+        String,
+        nullable=True,
+        comment='Last name'
+    )
+
+    phone = Column(
+        BigInteger,
+        nullable=True,
+        comment='Phone number'
+    )
+
+    current_page_on_vacancies = Column(
+        Integer,
+        nullable=False,
+        comment='Current step',
+        default=0
+    )
+
+    is_admin = Column(
+        Boolean,
+        nullable=False,
+        comment='Is this user admin?',
+        default=0
+    )
+
+    is_student = Column(
+        Boolean,
+        nullable=False,
+        comment='Is this user admin?',
+        default=0
+    )
+
+    def __repr__(self):
+        return f'{self.first_name} | {self.last_name}'
 
 
 class Course(BaseModel):
@@ -280,10 +350,77 @@ class BishkekVacancy(BaseModel):
         comment='These are the description of vacancy'
     )
 
+    link = Column(
+        String,
+        nullable=False,
+        comment='The link of a vacancy'
+    )
+
     type = Column(
         String,
         nullable=True,
         comment='These are the type of vacancy(Example: Python, JavaScript...)'
+    )
+
+    def __repr__(self):
+        return self.header
+
+
+class WorldVacancy(BaseModel):
+    """
+    Эта модель создана специально для записи данных о заказах со всего мира 
+    с сайта "https://www.upwork.com/" при помощи парсера "upwork_parser.py".
+    Она содержит поля:
+    header -> Название вакансии
+    description -> Подробное описание
+    price -> Плата
+    post_time -> Время подачи заказа
+    tags -> Требуемые навыки
+    type -> Тип вакансии: Python/JavaScript/*еще что-то*...
+    link -> Ссылка на сам заказ
+    """
+    __tablename__ = 'world_vacancy'
+
+    header = Column(
+        String,
+        nullable=False,
+        comment='Заголовок проекта'
+    )
+
+    description = Column(
+        Text,
+        nullable=False,
+        comment='Подробное описание проекта'
+    )
+
+    price = Column(
+        String,
+        nullable=False,
+        comment='Плата за проект'
+    )
+
+    post_time = Column(
+        String,
+        nullable=False,
+        comment='Время подачи проекта'
+    )
+
+    tags = Column(
+        String,
+        nullable=True,
+        comment='Тэги проекта'
+    )
+
+    type = Column(
+        String,
+        nullable=True,
+        comment='Тип проекта(Пример: Python, JavaScript...)'
+    )
+
+    link = Column(
+        String,
+        nullable=True,
+        comment='Ссылка на оригинальный проект'
     )
 
     def __repr__(self):
@@ -338,34 +475,86 @@ class VacancyApplicants(BaseModel):
         return f'{self.full_name} - {self.phone_number}'
 
 
-class News(BaseModel):
-    __tablename__ = 'news'
+class Feedback(BaseModel):
+    __tablename__ = 'feedback'
+
+    telegram_id = Column(
+        String,
+        nullable=False,
+        comment='Telegram ID of the person himself'
+    )
 
     department_id = Column(
         Integer,
         ForeignKey('department.id'),
-        nullable=False
+        nullable=False,
+        comment='The group in which he is studying'
     )
 
     department = relationship(
         "Department",
-        back_populates="news"
+        back_populates="feedbacks"
     )
 
-    news_source = Column(
-        String,
+    groups = Column(
+        Integer,
         nullable=False,
-        comment='The source where the statistic has been taken from'
+        comment='Training time in the morning/evening - 0/1'
     )
 
-    news_label = Column(
+    first_name = Column(
         String,
-        nullable=False,
-        comment='The header of an article'
+        nullable=True,
+        comment="Student's first name",
+        default='Empty'
+    )
+
+    last_name = Column(
+        String,
+        nullable=True,
+        comment="Student's last name",
+        default='Empty'
+    )
+
+    feedback_text = Column(
+        String,
+        comment="The student's review itself",
+        nullable=False
     )
 
     def __repr__(self):
-        return f'{self.department.department_name} - {self.news_label}'
+        return f'{self.department} - {self.first_name}'
+
+
+class TestQuestions(BaseModel):
+    __tablename__ = 'test_questions'
+
+    question = Column(
+        VARCHAR(255),
+        nullable=False,
+        comment='The question itself'
+    )
+
+    answers = Column(
+        TEXT,
+        nullable=False,
+        comment="4 possible answers"
+    )
+
+    true_answers = Column(
+        String,
+        nullable=False,
+        comment="The field with the CORRECT answer"
+    )
+
+    significance = Column(
+        Integer,
+        comment="Significance of the issue",
+        nullable=False
+    )
+
+    def __repr__(self):
+        return f'{self.question} - {self.true_answers}'
 
 
 if __name__ == "__main__":
@@ -385,13 +574,14 @@ if __name__ == "__main__":
         async with AsyncSession(engine, expire_on_commit=False) as session:
             async with session.begin():
                 python = Department(id=1, department_name='Python')
-                sys_admin = Department(id=2, department_name='System Administrator')
+                sys_admin = Department(
+                    id=2, department_name='System Administrator')
                 javascript = Department(id=3, department_name='Javascript')
                 java = Department(id=4, department_name='Java')
                 about = Reception(
                     apply=0, about_courses=0,
-                    about_company=0, vacancies=0,
-                    news=0
+                    about_company=0, vacancies=0, feedback=0
+
                 )
                 session.add_all(
                     [about,
@@ -425,7 +615,7 @@ if __name__ == "__main__":
                 {
                     "vacancy_type": 0,
                     "position": "*М-Ментор на курс `Системный Администратор`*",
-                    "time": "Договорный",
+                    "time": "Договорная",
                     "salary": "*350 - 450 $*",
                     "details": '''Требования:
 
@@ -440,11 +630,23 @@ if __name__ == "__main__":
     ✅ Комерческий опыт работы от 1-2х лет
 
 
+
 Обязанности:
     ⚜️ Разработка и поддержка учебного плана
     ⚜️ Обучение студентов, проведение занятий'''
                 }
             )
+
+            for question in QUESTIONS:
+                questions = insert(TestQuestions).values(
+                    {
+                        "question": question[0],
+                        "answers": question[1],
+                        "true_answers": question[2],
+                        "significance": question[3]
+                    }
+                )
+                await session.execute(questions)
 
             await session.execute(python_info)
             await session.execute(sys_admin_info)

@@ -4,9 +4,14 @@ import datetime
 
 # Third party imports
 from sqlalchemy import (
-    Column, ForeignKey,
-    Integer, String, TIMESTAMP,
-    SmallInteger, BigInteger, Text
+    Column,
+    ForeignKey,
+    Integer,
+    String,
+    TIMESTAMP,
+    SmallInteger,
+    BigInteger,
+    Text,
 )
 
 from sqlalchemy.orm import relationship
@@ -20,12 +25,17 @@ from sqlalchemy.sql.sqltypes import TEXT, VARCHAR, Boolean
 from database.settings import engine
 
 from configs.constants import (
-    PYTHON_INFO_TEXT_RU, PYTHON_INFO_TEXT_KG,
-    SYS_ADMIN_INFO_TEXT_RU, SYS_ADMIN_INFO_TEXT_KG,
-    JAVASCRIPT_INFO_TEXT_RU, JAVASCRIPT_INFO_TEXT_KG,
-    JAVA_INFO_TEXT_RU, JAVA_INFO_TEXT_KG,
-    ABOUT_COMPANY_RU, ABOUT_COMPANY_KG,
-    QUESTIONS
+    PYTHON_INFO_TEXT_RU,
+    PYTHON_INFO_TEXT_KG,
+    SYS_ADMIN_INFO_TEXT_RU,
+    SYS_ADMIN_INFO_TEXT_KG,
+    JAVASCRIPT_INFO_TEXT_RU,
+    JAVASCRIPT_INFO_TEXT_KG,
+    JAVA_INFO_TEXT_RU,
+    JAVA_INFO_TEXT_KG,
+    ABOUT_COMPANY_RU,
+    ABOUT_COMPANY_KG,
+    QUESTIONS,
 )
 
 Base = declarative_base()
@@ -35,11 +45,7 @@ class BaseModel(Base):
     __abstract__ = True
 
     id = Column(
-        Integer,
-        nullable=False,
-        unique=True,
-        primary_key=True,
-        autoincrement=True
+        Integer, nullable=False, unique=True, primary_key=True, autoincrement=True
     )
 
     created_at = Column(
@@ -47,7 +53,7 @@ class BaseModel(Base):
         nullable=False,
         # It is forbidden to leave just -> datetime.datetime.now convert it to str first!
         server_default=str(datetime.datetime.now()),
-        comment='The date an object has been created'
+        comment="The date an object has been created",
     )
 
     updated_at = Column(
@@ -55,7 +61,7 @@ class BaseModel(Base):
         nullable=False,
         server_default=str(datetime.datetime.now()),
         onupdate=datetime.datetime.now,
-        comment='The date an object has been updated'
+        comment="The date an object has been updated",
     )
 
     def __repr__(self):
@@ -63,41 +69,38 @@ class BaseModel(Base):
 
 
 class Reception(BaseModel):
-    __tablename__ = 'reception'
+    __tablename__ = "reception"
 
     apply = Column(
         Integer,
         nullable=False,
-        comment='How much times the APPLY button has been pressed',
-        default=1
+        comment="How much times the APPLY button has been pressed",
+        default=1,
     )
 
     about_courses = Column(
         BigInteger,
         nullable=False,
-        comment='How much times the ABOUT_COURSES button has been pressed',
-        default=1
+        comment="How much times the ABOUT_COURSES button has been pressed",
+        default=1,
     )
 
     about_company = Column(
         Integer,
         nullable=False,
-        comment='How much times the ABOUT_COMPANY button has been pressed',
-        default=1
+        comment="How much times the ABOUT_COMPANY button has been pressed",
+        default=1,
     )
 
     vacancies = Column(
         BigInteger,
         nullable=False,
-        comment='How much times the VACANCIES button has been pressed',
-        default=1
+        comment="How much times the VACANCIES button has been pressed",
+        default=1,
     )
 
     feedback = Column(
-        Integer,
-        nullable=False,
-        comment="Feedback from student's",
-        default=1
+        Integer, nullable=False, comment="Feedback from student's", default=1
     )
 
     test = Column(
@@ -112,69 +115,61 @@ class Reception(BaseModel):
 
 
 class Department(BaseModel):
-    __tablename__ = 'department'
+    __tablename__ = "department"
 
     department_name = Column(
-        String,
-        nullable=False,
-        unique=True,
-        comment='Programming language name'
+        String, nullable=False, unique=True, comment="Programming language name"
     )
 
-    customers = relationship('Customer', back_populates='department')
-    courses = relationship('Course', back_populates='department')
-    feedbacks = relationship('Feedback', back_populates='department')
+    customers = relationship("Customer", back_populates="department")
+    courses = relationship("Course", back_populates="department")
+    feedbacks = relationship("Feedback", back_populates="department")
 
     def __repr__(self):
         return self.department_name
 
 
 class Customer(BaseModel):
-    __tablename__ = 'customer'
+    __tablename__ = "customer"
 
     chat_id = Column(
         Integer,
         nullable=False,
-        comment='The chat id of User who applied for registration'
+        comment="The chat id of User who applied for registration",
     )
 
     first_name = Column(
         String,
         nullable=False,
-        comment='How much times the apply button has been pressed'
+        comment="How much times the apply button has been pressed",
     )
 
     last_name = Column(
         String,
         nullable=True,
-        comment='How much times the apply button has been pressed'
+        comment="How much times the apply button has been pressed",
     )
 
     phone = Column(
         BigInteger,
         nullable=True,
-        comment='How much times the apply button has been pressed'
+        comment="How much times the apply button has been pressed",
     )
 
     time = Column(
         SmallInteger,
         nullable=True,
-        comment='The time when a group start to study. Morning or Evening'
+        comment="The time when a group start to study. Morning or Evening",
     )
 
     department_name = Column(
-        String,
-        ForeignKey('department.department_name'),
-        nullable=False
+        String, ForeignKey("department.department_name"), nullable=False
     )
 
-    department = relationship(
-        "Department",
-        back_populates="customers"
-    )
+    department = relationship("Department", back_populates="customers")
 
     def __repr__(self):
-        return f'{self.department_name} | {self.first_name} | {self.last_name}'
+        return f"{self.department_name} | {self.first_name} | {self.last_name}"
 
 
 class User(BaseModel):
@@ -236,64 +231,39 @@ class User(BaseModel):
 
 
 class Course(BaseModel):
-    __tablename__ = 'course'
+    __tablename__ = "course"
 
-    department_id = Column(
-        Integer,
-        ForeignKey('department.id'),
-        nullable=False
-    )
+    department_id = Column(Integer, ForeignKey("department.id"), nullable=False)
 
-    department = relationship(
-        "Department",
-        back_populates="courses"
-    )
+    department = relationship("Department", back_populates="courses")
 
     department_info = Column(
-        Text,
-        nullable=False,
-        comment='The information about course'
+        Text, nullable=False, comment="The information about course"
     )
 
     def __repr__(self):
-        return f'{self.department}'
+        return f"{self.department}"
 
 
 class Vacancy(BaseModel):
-    __tablename__ = 'vacancy'
+    __tablename__ = "vacancy"
 
     vacancy_type = Column(
         SmallInteger,
         nullable=False,
-        comment='If VACANCY_TYPE = 0 it means that vacancy provided by P-Programist, otherwise the vacancy provided by another resource'
+        comment="If VACANCY_TYPE = 0 it means that vacancy provided by P-Programist, otherwise the vacancy provided by another resource",
     )
 
-    position = Column(
-        String,
-        nullable=False,
-        comment='The header of vacancy'
-    )
+    position = Column(String, nullable=False, comment="The header of vacancy")
 
-    time = Column(
-        String,
-        nullable=False,
-        comment='The time of lesson'
-    )
+    time = Column(String, nullable=False, comment="The time of lesson")
 
-    salary = Column(
-        String,
-        nullable=False,
-        comment='The salary of a mentor'
-    )
+    salary = Column(String, nullable=False, comment="The salary of a mentor")
 
-    details = Column(
-        Text,
-        nullable=False,
-        comment='These are the details of vacancy'
-    )
+    details = Column(Text, nullable=False, comment="These are the details of vacancy")
 
     # This line is binded with the VACANCY field in VacancyApplicants class.
-    applicants = relationship('VacancyApplicants', back_populates='vacancy')
+    applicants = relationship("VacancyApplicants", back_populates="vacancy")
 
     def __repr__(self):
         return self.position
@@ -301,7 +271,7 @@ class Vacancy(BaseModel):
 
 class BishkekVacancy(BaseModel):
     """
-    Эта модель создана специально для записи данных о вакансий по городу Бишкек 
+    Эта модель создана специально для записи данных о вакансий по городу Бишкек
     с сайта "https://www.job.kg/" при помощи парсера "job_kg_parser.py".
     Она содержит поля:
     header -> Название вакансии
@@ -312,42 +282,23 @@ class BishkekVacancy(BaseModel):
     details -> Подробное описание
     type -> Тип вакансии: Python/JavaScript/*еще что-то*...
     """
-    __tablename__ = 'bishkek_vacancy'
 
-    header = Column(
-        String,
-        nullable=False,
-        comment='The name of vacancy'
-    )
+    __tablename__ = "bishkek_vacancy"
 
-    company_name = Column(
-        String,
-        nullable=False,
-        comment='The name of company'
-    )
+    header = Column(String, nullable=False, comment="The name of vacancy")
+
+    company_name = Column(String, nullable=False, comment="The name of company")
 
     required_experience = Column(
-        String,
-        nullable=False,
-        comment='Required work experience'
+        String, nullable=False, comment="Required work experience"
     )
 
-    salary = Column(
-        String,
-        nullable=False,
-        comment='The salary of a worker'
-    )
+    salary = Column(String, nullable=False, comment="The salary of a worker")
 
-    schedule = Column(
-        String,
-        nullable=False,
-        comment='The schedule of a work'
-    )
+    schedule = Column(String, nullable=False, comment="The schedule of a work")
 
     details = Column(
-        Text,
-        nullable=False,
-        comment='These are the description of vacancy'
+        Text, nullable=False, comment="These are the description of vacancy"
     )
 
     link = Column(
@@ -359,7 +310,7 @@ class BishkekVacancy(BaseModel):
     type = Column(
         String,
         nullable=True,
-        comment='These are the type of vacancy(Example: Python, JavaScript...)'
+        comment="These are the type of vacancy(Example: Python, JavaScript...)",
     )
 
     def __repr__(self):
@@ -428,133 +379,105 @@ class WorldVacancy(BaseModel):
 
 
 class VacancyApplicants(BaseModel):
-    __tablename__ = 'vacancy_applicants'
+    __tablename__ = "vacancy_applicants"
 
-    vacancy_id = Column(
-        Integer,
-        ForeignKey('vacancy.id'),
-        nullable=False
-    )
+    vacancy_id = Column(Integer, ForeignKey("vacancy.id"), nullable=False)
 
-    vacancy = relationship(
-        "Vacancy",
-        back_populates="applicants"
-    )
+    vacancy = relationship("Vacancy", back_populates="applicants")
 
     chat_id = Column(
-        Integer,
-        nullable=False,
-        comment='The chat id of User who applied for vacancy'
+        Integer, nullable=False, comment="The chat id of User who applied for vacancy"
     )
 
-    full_name = Column(
-        String,
-        nullable=True,
-        comment='The full name of applicant'
-    )
+    full_name = Column(String, nullable=True, comment="The full name of applicant")
 
     cover_letter = Column(
         Text,
         nullable=True,
-        comment='This cover letter has to be written in order to see applicants\'s interests'
+        comment="This cover letter has to be written in order to see applicants's interests",
     )
 
     github_link = Column(
-        String,
-        nullable=True,
-        comment='A GitHub link to check applicant\'s experience'
+        String, nullable=True, comment="A GitHub link to check applicant's experience"
     )
 
     phone_number = Column(
-        BigInteger,
-        nullable=True,
-        comment='The contact number of applicant'
+        BigInteger, nullable=True, comment="The contact number of applicant"
     )
 
     def __repr__(self):
-        return f'{self.full_name} - {self.phone_number}'
+        return f"{self.full_name} - {self.phone_number}"
 
 
 class Feedback(BaseModel):
-    __tablename__ = 'feedback'
+    """
+    Эта модель создана для записи отзывов, учеников курсов.
+    Она содержит поля:
+    telegram_id -> Телеграмм ID пользователя
+    department_id -> Что обучает пользоваетль Python/JavaScript
+    groups -> В какую смену обучается Утренняя/Вечерняя
+    first_name -> Имя пользователя
+    last_name -> Фамилия пользователя
+    feedback_text -> Сам отзыв
+    """
+    __tablename__ = "feedback"
 
     telegram_id = Column(
-        String,
-        nullable=False,
-        comment='Telegram ID of the person himself'
+        String, nullable=False, comment="Telegram ID of the person himself"
     )
 
     department_id = Column(
         Integer,
-        ForeignKey('department.id'),
+        ForeignKey("department.id"),
         nullable=False,
-        comment='The group in which he is studying'
+        comment="The group in which he is studying",
     )
 
-    department = relationship(
-        "Department",
-        back_populates="feedbacks"
-    )
+    department = relationship("Department", back_populates="feedbacks")
 
     groups = Column(
-        Integer,
-        nullable=False,
-        comment='Training time in the morning/evening - 0/1'
+        Integer, nullable=False, comment="Training time in the morning/evening - 0/1"
     )
 
     first_name = Column(
-        String,
-        nullable=True,
-        comment="Student's first name",
-        default='Empty'
+        String, nullable=True, comment="Student's first name", default="Empty"
     )
 
     last_name = Column(
-        String,
-        nullable=True,
-        comment="Student's last name",
-        default='Empty'
+        String, nullable=True, comment="Student's last name", default="Empty"
     )
 
     feedback_text = Column(
-        String,
-        comment="The student's review itself",
-        nullable=False
+        String, comment="The student's review itself", nullable=False
     )
 
     def __repr__(self):
-        return f'{self.department} - {self.first_name}'
+        return f"{self.department} - {self.first_name}"
 
 
 class TestQuestions(BaseModel):
-    __tablename__ = 'test_questions'
+    """
+    Эта модель создана для хранения вопросов.
+    Она содержит поля:
+    question -> Сам вопрос
+    answers -> Варианты ответа
+    true_answers -> Какой из них проваильный
+    significance -> Сколько дает баллов тот или иной вопрос
+    """
+    __tablename__ = "test_questions"
 
-    question = Column(
-        VARCHAR(255),
-        nullable=False,
-        comment='The question itself'
-    )
+    question = Column(VARCHAR(255), nullable=False, comment="The question itself")
 
-    answers = Column(
-        TEXT,
-        nullable=False,
-        comment="4 possible answers"
-    )
+    answers = Column(TEXT, nullable=False, comment="4 possible answers")
 
     true_answers = Column(
-        String,
-        nullable=False,
-        comment="The field with the CORRECT answer"
+        String, nullable=False, comment="The field with the CORRECT answer"
     )
 
-    significance = Column(
-        Integer,
-        comment="Significance of the issue",
-        nullable=False
-    )
+    significance = Column(Integer, comment="Significance of the issue", nullable=False)
 
     def __repr__(self):
-        return f'{self.question} - {self.true_answers}'
+        return f"{self.question} - {self.true_answers}"
 
 
 if __name__ == "__main__":
@@ -562,11 +485,11 @@ if __name__ == "__main__":
     from sqlalchemy.ext.asyncio import AsyncSession
 
     async def recreate_database():
-        '''
-            When you want to set a connection with the database,
-            You have to call the .begin() method from engine.
-            After this method initialized You will get asynchronous connection with database.
-        '''
+        """
+        When you want to set a connection with the database,
+        You have to call the .begin() method from engine.
+        After this method initialized You will get asynchronous connection with database.
+        """
         async with engine.begin() as connection:
             await connection.run_sync(Base.metadata.drop_all)
             await connection.run_sync(Base.metadata.create_all)
@@ -582,6 +505,7 @@ if __name__ == "__main__":
                     apply=0, about_courses=0,
                     about_company=0, vacancies=0, feedback=0
 
+
                 )
                 session.add_all(
                     [about,
@@ -591,23 +515,21 @@ if __name__ == "__main__":
                         java
                      ]
                 )
+                session.add_all([about, python, sys_admin, javascript, java])
 
             python_info = insert(Course).values(
-                {
-                    "department_info": PYTHON_INFO_TEXT_RU,
-                    "department_id": python.id
-                }
+                {"department_info": PYTHON_INFO_TEXT_RU, "department_id": python.id}
             )
             sys_admin_info = insert(Course).values(
                 {
                     "department_info": SYS_ADMIN_INFO_TEXT_RU,
-                    "department_id": sys_admin.id
+                    "department_id": sys_admin.id,
                 }
             )
             javascript_info = insert(Course).values(
                 {
                     "department_info": JAVASCRIPT_INFO_TEXT_RU,
-                    "department_id": javascript.id
+                    "department_id": javascript.id,
                 }
             )
 
@@ -615,9 +537,9 @@ if __name__ == "__main__":
                 {
                     "vacancy_type": 0,
                     "position": "*М-Ментор на курс `Системный Администратор`*",
-                    "time": "Договорная",
-                    "salary": "*350 - 450 $*",
-                    "details": '''Требования:
+                    "time": "Договорный",
+                    "salary": "*15000 - 25000 com*",
+                    "details": """Требования:
 
     ✅ Чёткое понимание и возможность объяснить зачем нужна эта должность
     ✅ Опыт администрирования операционных систем Linux и Windows Server
@@ -633,7 +555,7 @@ if __name__ == "__main__":
 
 Обязанности:
     ⚜️ Разработка и поддержка учебного плана
-    ⚜️ Обучение студентов, проведение занятий'''
+    ⚜️ Обучение студентов, проведение занятий""",
                 }
             )
 
@@ -643,7 +565,7 @@ if __name__ == "__main__":
                         "question": question[0],
                         "answers": question[1],
                         "true_answers": question[2],
-                        "significance": question[3]
+                        "significance": question[3],
                     }
                 )
                 await session.execute(questions)

@@ -5,20 +5,15 @@ from configs.core import redworker
 
 class Languages(object):
     """Languages class is responsible for generating buttons for choosing language."""
+
     def __init__(self):
         super(Languages, self).__init__()
         self.markup = InlineKeyboardMarkup(row_width=2)
 
     def lang_buttons(self):
-        ru_btn = InlineKeyboardButton(
-            'Русский 🇷🇺',
-            callback_data='ru'
-        )
+        ru_btn = InlineKeyboardButton("Русский 🇷🇺", callback_data="ru")
 
-        kg_btn = InlineKeyboardButton(
-            'English 🇺🇸',
-            callback_data='kg'
-        )
+        kg_btn = InlineKeyboardButton("English 🇺🇸", callback_data="kg")
 
         self.markup.add(ru_btn, kg_btn)
 
@@ -26,45 +21,43 @@ class Languages(object):
 
 
 class MainMenu(object):
-    """docstring for MainMenu."""
+    """This class is responsible for Inline buttons after You choose the language."""
+
     def __init__(self, chat_id):
         super(MainMenu, self).__init__()
         self.markup = InlineKeyboardMarkup(row_width=2)
 
         self.chat_id = chat_id
 
-
     async def main_menu_buttons(self, shows):
+        """
+        Method accepts one primary argument that hides some buttons for authentication reasons.
+        Also, the method generates all buttons regarding to the main menu.
+        """
         lang = await redworker.get_data(chat=self.chat_id)
 
         apply_btn = InlineKeyboardButton(
-            text=SPEECH["apply" + lang],
-            callback_data='apply'
+            text=SPEECH["apply" + lang], callback_data="apply"
         )
 
         about_courses = InlineKeyboardButton(
-            text=SPEECH["about_courses" + lang],
-            callback_data='about_courses'
+            text=SPEECH["about_courses" + lang], callback_data="about_courses"
         )
 
         about_company = InlineKeyboardButton(
-            text=SPEECH["about_company_btn" + lang],
-            callback_data='about_company'
+            text=SPEECH["about_company_btn" + lang], callback_data="about_company"
         )
 
         vacancies = InlineKeyboardButton(
-            text=SPEECH["vacancies" + lang],
-            callback_data='vacancies'
+            text=SPEECH["vacancies" + lang], callback_data="vacancies"
         )
 
         feedback = InlineKeyboardButton(
-            text=SPEECH["feedback_btn" + lang],
-            callback_data='feedback'
+            text=SPEECH["feedback_btn" + lang], callback_data="feedback"
         )
 
         tests = InlineKeyboardButton(
-            text=SPEECH["test_btn" + lang],
-            callback_data='test'
+            text=SPEECH["test_btn" + lang], callback_data="test"
         )
 
         self.markup.add(apply_btn, about_courses, about_company, vacancies, tests)
@@ -73,16 +66,15 @@ class MainMenu(object):
 
         return self.markup
 
-
     async def step_back(self):
+        """
+        This single method is responsible for button that returns to one step back!
+        """
         lang = await redworker.get_data(chat=self.chat_id)
 
         markup = InlineKeyboardMarkup(row_width=2)
 
-        back = InlineKeyboardButton(
-            text=SPEECH["back" + lang],
-            callback_data='back'
-        )
+        back = InlineKeyboardButton(text=SPEECH["back" + lang], callback_data="back")
 
         markup.add(back)
 
@@ -90,7 +82,8 @@ class MainMenu(object):
 
 
 class Departments(object):
-    """docstring for Departments."""
+    """The object keeps all buttons that relates to Programming languages buttons."""
+
     def __init__(self, chat_id):
         super(Departments, self).__init__()
         self.chat_id = chat_id
@@ -99,35 +92,27 @@ class Departments(object):
     async def departments_buttons(self, back=False):
         lang = await redworker.get_data(chat=self.chat_id)
 
-        python = InlineKeyboardButton(
-            text='Python 🐍',
-            callback_data='python'
-        )
-        
+        python = InlineKeyboardButton(text="Python 🐍", callback_data="python")
+
         sys_admin = InlineKeyboardButton(
-            text='Системный администратор ⚙️',
-            callback_data='system_administrator'
+            text="Системный администратор ⚙️", callback_data="system_administrator"
         )
 
         javascript = InlineKeyboardButton(
-            text='JavaScript 👨‍🎨',
-            callback_data='javascript'
+            text="JavaScript 👨‍🎨", callback_data="javascript"
         )
 
-        java = InlineKeyboardButton(
-            text='Java ⚒',
-            callback_data='java'
-        )
+        java = InlineKeyboardButton(text="Java ⚒", callback_data="java")
 
         back_btn = InlineKeyboardButton(
-            text=SPEECH["back" + lang],
-            callback_data='back_to_menu'
+            text=SPEECH["back" + lang], callback_data="back_to_menu"
         )
 
-
         self.markup.add(
-            python, sys_admin,
-            javascript, java,
+            python,
+            sys_admin,
+            javascript,
+            java,
         )
 
         if back:
@@ -138,68 +123,73 @@ class Departments(object):
 
 class GroupTime(object):
     """docstring for GroupTime."""
+
     def __init__(self, chat_id):
         super(GroupTime, self).__init__()
 
         self.chat_id = chat_id
         self.markup = InlineKeyboardMarkup(row_width=2)
 
-
     async def group_time_buttons(self):
         lang = await redworker.get_data(chat=self.chat_id)
 
         morning = InlineKeyboardButton(
-            text=SPEECH["morning_group" + lang],
-            callback_data=0
+            text=SPEECH["morning_group" + lang], callback_data=0
         )
 
         evening = InlineKeyboardButton(
-            text=SPEECH["evening_group" + lang],
-            callback_data=1
+            text=SPEECH["evening_group" + lang], callback_data=1
         )
 
-        self.markup.add(morning, evening)
+        back_btn = InlineKeyboardButton(
+            text=SPEECH["back" + lang],
+            callback_data='back'
+        )
+
+        self.markup.add(morning, evening, back_btn)
 
         return self.markup
-
 
 
 class ActiveVacancies(object):
     def __init__(self, chat_id):
         super(ActiveVacancies, self).__init__()
         self.chat_id = chat_id
-            
 
     async def vacancies(self):
         markup = InlineKeyboardMarkup(row_width=1)
         lang = await redworker.get_data(chat=self.chat_id)
 
         company = InlineKeyboardButton(
-            text=SPEECH["company_vacancies" + lang],
-            callback_data='company'
+            text=SPEECH["company_vacancies" + lang], callback_data="company"
         )
 
-
         city = InlineKeyboardButton(
-            text=SPEECH["city_vacancies" + lang],
-            callback_data='city'
+            text=SPEECH["city_vacancies" + lang], callback_data="city"
         )
 
         foreign = InlineKeyboardButton(
-            text=SPEECH["foreign_vacancies" + lang],
-            callback_data='foreign'
+            text=SPEECH["foreign_vacancies" + lang], callback_data="foreign"
         )
 
         back_btn = InlineKeyboardButton(
-            text=SPEECH["back" + lang],
-            callback_data='back_to_menu'
+            text=SPEECH["back" + lang], callback_data="back_to_menu"
         )
 
-        markup.add(
-            company, city, 
-            foreign, back_btn
+        markup.add(company, city, foreign, back_btn)
+
+        return markup
+
+    async def more_for_vacancy(self, vacancy_id):
+        markup = InlineKeyboardMarkup(row_width=1)
+        lang = await redworker.get_data(chat=self.chat_id)
+
+        more = InlineKeyboardButton(
+            text=SPEECH["more_detailed_btn" + lang],
+            callback_data=vacancy_id
         )
 
+        markup.add(more)
         return markup
     
     async def choose_foreign_vacancies_type(self):
@@ -271,13 +261,13 @@ class ActiveVacancies(object):
         return markup
 
 
+
     async def apply_for_vacancy(self, vacancy_id):
         markup = InlineKeyboardMarkup(row_width=1)
         lang = await redworker.get_data(chat=self.chat_id)
 
         apply = InlineKeyboardButton(
-            text=SPEECH["apply_for_vacancy" + lang],
-            callback_data=vacancy_id
+            text=SPEECH["apply_for_vacancy" + lang], callback_data=vacancy_id
         )
 
         markup.add(apply)
@@ -287,6 +277,7 @@ class ActiveVacancies(object):
 
 class DepartmentFeedback(object):
     """docstring for DepartmentFeedback."""
+
     def __init__(self, chat_id):
         super(DepartmentFeedback, self).__init__()
         self.chat_id = chat_id
@@ -295,28 +286,22 @@ class DepartmentFeedback(object):
     async def departments_buttons(self):
         lang = await redworker.get_data(chat=self.chat_id)
 
-        python = InlineKeyboardButton(
-            text='Python 🐍',
-            callback_data='python2'
-        )
-        
+        python = InlineKeyboardButton(text="Python 🐍", callback_data="python2")
+
         javascript = InlineKeyboardButton(
-            text='JavaScript 👨‍🎨',
-            callback_data='javascript2'
+            text="JavaScript 👨‍🎨", callback_data="javascript2"
         )
 
-        back = InlineKeyboardButton(
-            text=SPEECH["back" + lang],
-            callback_data='back'
-        )
+        back = InlineKeyboardButton(text=SPEECH["back" + lang], callback_data="back")
 
         self.markup.add(python, javascript, back)
 
-
         return self.markup
+
 
 class FeedbackSchedule(object):
     """docstring for FeedbackSchedule."""
+
     def __init__(self, chat_id):
         super(FeedbackSchedule, self).__init__()
         self.chat_id = chat_id
@@ -326,70 +311,49 @@ class FeedbackSchedule(object):
         lang = await redworker.get_data(chat=self.chat_id)
 
         morning = InlineKeyboardButton(
-            text=SPEECH["morning_group" + lang],
-            callback_data=0
+            text=SPEECH["morning_group" + lang], callback_data=0
         )
 
         evening = InlineKeyboardButton(
-            text=SPEECH["evening_group" + lang],
-            callback_data=1
+            text=SPEECH["evening_group" + lang], callback_data=1
         )
 
-        back = InlineKeyboardButton(
-            text=SPEECH["back" + lang],
-            callback_data='back'
-        )
+        back = InlineKeyboardButton(text=SPEECH["back" + lang], callback_data="back")
 
         self.markup.add(morning, evening, back)
 
-
         return self.markup
-    
-class Test(object):
+
+
+class Quiz(object):
     """docstring for Test."""
+
     def __init__(self):
-        super(Test, self).__init__()
+        super(Quiz, self).__init__()
 
     async def rules(self, chat_id):
         lang = await redworker.get_data(chat=chat_id)
         markup = InlineKeyboardMarkup(row_width=1)
 
         start_test = InlineKeyboardButton(
-            text=SPEECH["start_test_btn" + lang],
-            callback_data='start_test'
+            text=SPEECH["start_test_btn" + lang], callback_data="start_test"
         )
 
-        back = InlineKeyboardButton(
-            text=SPEECH["back" + lang],
-            callback_data='back'
-        )
+        back = InlineKeyboardButton(text=SPEECH["back" + lang], callback_data="back")
 
         markup.add(start_test, back)
         return markup
-    
+
     async def choose_true_answers(self, chat_id, answers):
         lang = await redworker.get_data(chat=chat_id)
         markup = InlineKeyboardMarkup(row_width=2)
 
-        answer1 = InlineKeyboardButton(
-            text=answers[0],
-            callback_data='1'
-        )
-        answer2 = InlineKeyboardButton(
-            text=answers[1],
-            callback_data='2'
-        )
-        answer3 = InlineKeyboardButton(
-            text=answers[2],
-            callback_data='3'
-        )
-        answer4 = InlineKeyboardButton(
-            text=answers[3],
-            callback_data='4'
-        )
+        answer1 = InlineKeyboardButton(text=answers[0], callback_data="1")
+        answer2 = InlineKeyboardButton(text=answers[1], callback_data="2")
+        answer3 = InlineKeyboardButton(text=answers[2], callback_data="3")
+        answer4 = InlineKeyboardButton(text=answers[3], callback_data="4")
         stop_tests = InlineKeyboardButton(
-            text=SPEECH["stop_test_btn" + lang],
-            callback_data='stop_test'
+            text=SPEECH["stop_test_btn" + lang], callback_data="stop_test"
         )
 
         markup.add(answer1, answer2, answer3, answer4, stop_tests)
@@ -400,8 +364,7 @@ class Test(object):
         markup = InlineKeyboardMarkup(row_width=1)
 
         know = InlineKeyboardButton(
-            text=SPEECH["know_point_btn" + lang],
-            callback_data='knows'
+            text=SPEECH["know_point_btn" + lang], callback_data="knows"
         )
 
         markup.add(know)

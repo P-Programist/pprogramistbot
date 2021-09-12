@@ -1,20 +1,27 @@
-import ssl
-import re
-import requests
+# Standard library imports
+import time
 import asyncio
-from sqlalchemy.sql.expression import delete
+
+# Third party imports
+import requests
+import re
+import ssl
 from urllib3 import poolmanager
 from bs4 import BeautifulSoup as BS
+
+#SQL Alchemy
+from sqlalchemy.sql.expression import delete
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.sql.expression import delete
+
+# Local application imports
 from database.models import (
     BishkekVacancy,
     engine,
     insert
 )
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.sql.expression import delete
-
-
 from configs.constants import BISHKEK_SCRAPER_URL as url
+
 
 
 class TLSAdapter(requests.adapters.HTTPAdapter):
@@ -169,9 +176,24 @@ class Filler(Scraper):
             descriptions = []
             company_names = []
             experience = []
-            schedules = []
-            for url in links:
-                detail_soup = BS(self.get_html(url), 'html.parser')
+
+            schedule = []
+            for url in details:
+                detail_soup = BS(self.get_html(
+                    f'https://www.job.kg{url}'), 'html.parser')
+                try:
+                    descriptions.append(detail_soup.find(
+                        'div', class_="details-").text.replace('\xa0', ' ').split('\n\n\n\n')[1].strip())
+                except:
+                    descriptions.append(detail_soup.find(
+                        'div', class_="details-").text.replace('\xa0', ' ').strip())
+                try:
+                    company_names.append(detail_soup.find(
+                        'div', class_="employer- clearfix").p.b.a.text)
+                except AttributeError:
+                    company_names.append(detail_soup.find(
+                        'div', class_="employer- clearfix").p.b.text)
+
                 elements_of_kasha = re.split(
                     '<dt>|</dt>|<dd>|</dd>', str(detail_soup.find('div', class_="vvloa-box").dl))
                 descriptions.append(self.get_description(detail_soup))
@@ -229,5 +251,9 @@ class Filler(Scraper):
 
 
 if __name__ == "__main__":
-    filler = Filler(url)
-    asyncio.run(filler.filling_database())
+    scraper = Scraper(url)
+    loop = asyncio.get_event_loop()
+    while True:
+        loop.run_until_complete(filling_database(scraper))
+        time.sleep(3000)
+

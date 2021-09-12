@@ -191,6 +191,75 @@ class ActiveVacancies(object):
 
         markup.add(more)
         return markup
+    
+    async def choose_foreign_vacancies_type(self):
+        markup = InlineKeyboardMarkup(row_width=1)
+        lang = await redworker.get_data(chat=self.chat_id)
+
+
+        javascript = InlineKeyboardButton(
+            text='JavaScript',
+            callback_data='javascript'
+        )
+
+
+        python = InlineKeyboardButton(
+            text='Python',
+            callback_data='python'
+        )
+
+
+        back_btn = InlineKeyboardButton(
+            text=SPEECH["back" + lang],
+            callback_data='back_to_vacancies'
+        )
+
+        markup.add(
+            javascript, python
+        )
+        markup.add(
+            back_btn
+        )
+
+        return markup
+
+    async def more_vacancies(self):
+        markup = InlineKeyboardMarkup(row_width=1)
+        lang = await redworker.get_data(chat=self.chat_id)
+
+
+        more = InlineKeyboardButton(
+            text='Ещё вакансии',
+            callback_data='more'
+        )
+
+
+        back_btn = InlineKeyboardButton(
+            text=SPEECH["back" + lang],
+            callback_data='back_to_vacancies'
+        )
+
+        markup.add(
+            more,
+            back_btn
+        )
+        return markup
+
+
+    async def vacancies_are_over(self):
+        markup = InlineKeyboardMarkup(row_width=1)
+        lang = await redworker.get_data(chat=self.chat_id)
+
+        back_btn = InlineKeyboardButton(
+            text=SPEECH["back" + lang],
+            callback_data='back_to_vacancies'
+        )
+
+        markup.add(
+            back_btn
+        )
+        return markup
+
 
 
     async def apply_for_vacancy(self, vacancy_id):

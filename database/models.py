@@ -17,7 +17,8 @@ from sqlalchemy import (
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql.expression import delete, insert
-from sqlalchemy.sql.sqltypes import TEXT, VARCHAR
+from sqlalchemy.sql.functions import current_date
+from sqlalchemy.sql.sqltypes import TEXT, VARCHAR, Boolean
 
 
 # Local application imports
@@ -102,7 +103,12 @@ class Reception(BaseModel):
         Integer, nullable=False, comment="Feedback from student's", default=1
     )
 
-    test = Column(Integer, nullable=False, comment="Test for human", default=1)
+    test = Column(
+        Integer,
+        nullable=False,
+        comment="Test for human",
+        default=1
+    )
 
     def __repr__(self):
         return "<{0.__class__.__name__}(id={0.id!r})>".format(self)
@@ -164,6 +170,64 @@ class Customer(BaseModel):
 
     def __repr__(self):
         return f"{self.department_name} | {self.first_name} | {self.last_name}"
+
+
+class User(BaseModel):
+    __tablename__ = 'users'
+
+    chat_id = Column(
+        Integer,
+        nullable=False,
+        comment='chat_id'
+    )
+
+    username = Column(
+        String,
+        nullable=False,
+        comment='Username'
+    )
+
+    first_name = Column(
+        String,
+        nullable=True,
+        comment='First name'
+    )
+
+    last_name = Column(
+        String,
+        nullable=True,
+        comment='Last name'
+    )
+
+    phone = Column(
+        BigInteger,
+        nullable=True,
+        comment='Phone number'
+    )
+
+    current_page_on_vacancies = Column(
+        Integer,
+        nullable=False,
+        comment='Current step',
+        default=0
+    )
+
+    is_admin = Column(
+        Boolean,
+        nullable=False,
+        comment='Is this user admin?',
+        default=0
+    )
+
+    is_student = Column(
+        Boolean,
+        nullable=False,
+        comment='Is this user admin?',
+        default=0
+    )
+
+    def __repr__(self):
+        return f'{self.first_name} | {self.last_name}'
 
 
 class Course(BaseModel):
@@ -237,10 +301,77 @@ class BishkekVacancy(BaseModel):
         Text, nullable=False, comment="These are the description of vacancy"
     )
 
+    link = Column(
+        String,
+        nullable=False,
+        comment='The link of a vacancy'
+    )
+
     type = Column(
         String,
         nullable=True,
         comment="These are the type of vacancy(Example: Python, JavaScript...)",
+    )
+
+    def __repr__(self):
+        return self.header
+
+
+class WorldVacancy(BaseModel):
+    """
+    Эта модель создана специально для записи данных о заказах со всего мира 
+    с сайта "https://www.upwork.com/" при помощи парсера "upwork_parser.py".
+    Она содержит поля:
+    header -> Название вакансии
+    description -> Подробное описание
+    price -> Плата
+    post_time -> Время подачи заказа
+    tags -> Требуемые навыки
+    type -> Тип вакансии: Python/JavaScript/*еще что-то*...
+    link -> Ссылка на сам заказ
+    """
+    __tablename__ = 'world_vacancy'
+
+    header = Column(
+        String,
+        nullable=False,
+        comment='Заголовок проекта'
+    )
+
+    description = Column(
+        Text,
+        nullable=False,
+        comment='Подробное описание проекта'
+    )
+
+    price = Column(
+        String,
+        nullable=False,
+        comment='Плата за проект'
+    )
+
+    post_time = Column(
+        String,
+        nullable=False,
+        comment='Время подачи проекта'
+    )
+
+    tags = Column(
+        String,
+        nullable=True,
+        comment='Тэги проекта'
+    )
+
+    type = Column(
+        String,
+        nullable=True,
+        comment='Тип проекта(Пример: Python, JavaScript...)'
+    )
+
+    link = Column(
+        String,
+        nullable=True,
+        comment='Ссылка на оригинальный проект'
     )
 
     def __repr__(self):
@@ -365,14 +496,15 @@ if __name__ == "__main__":
 
         async with AsyncSession(engine, expire_on_commit=False) as session:
             async with session.begin():
-                python = Department(id=1, department_name="Python")
-                sys_admin = Department(id=2, department_name="System Administrator")
-                javascript = Department(id=3, department_name="Javascript")
-                java = Department(id=4, department_name="Java")
+                python = Department(id=1, department_name='Python')
+                sys_admin = Department(
+                    id=2, department_name='System Administrator')
+                javascript = Department(id=3, department_name='Javascript')
+                java = Department(id=4, department_name='Java')
                 about = Reception(
                     apply=0, about_courses=0,
-                    about_company=0, vacancies=0,
-                    feedback=0
+                    about_company=0, vacancies=0, feedback=0
+
 
                 )
                 session.add_all(

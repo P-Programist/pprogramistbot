@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from database.settings import engine
 from buttons.inlines_buttons import ActiveVacancies
-from database.models import Reception, Vacancy, BishkekVacancy, TestQuestions
+from database.models import Reception, Vacancy, BishkekVacancy, WorldVacancy, TestQuestions
 
 
 async def increment_at_reception(model, call):
@@ -57,6 +57,7 @@ async def object_exists(model, attr_name, attr_value, *args):
             obj = result.scalar()
 
     return obj if obj else []
+
 
 
 async def insert_object(model: object, data: dict, call: CallbackQuery):
@@ -159,27 +160,29 @@ async def more_text(call, question_id):
             return data[:10]
 
 
-async def extract_world_vacancies(call) -> tuple:
-    chat_id = call.message.chat.id
+async def extract_world_vacancies(type, step=0, call=None) -> tuple:
+    """
+    This function extracts data from the fields specified in «select» and displays the first 10 of them.
+    Эта функция извлекает данные из полей, указанных в «select», и отображает первые 10 из них.
+    """
 
     async with AsyncSession(engine, expire_on_commit=False) as session:
         async with session.begin():
-            vacancy_list = select(BishkekVacancy)
+            vacancy_list = select(WorldVacancy.header, WorldVacancy.price, WorldVacancy.description, WorldVacancy.tags, WorldVacancy.post_time, WorldVacancy.link, WorldVacancy.type)
 
             lst = await session.execute(vacancy_list)
+            data = [i for i in lst.fetchall() if i[6] == type]
 
-    data = lst.all()
-
-    if data:
-        return (
-            (
-                item[0].header,
-                await ActiveVacancies(chat_id).apply_for_vacancy(item[0].id),
-            )
-            for item in data
-        )
-
-    return data
+            if step:
+                step *= 10
+            else:
+                step += 10
+            final = []
+            index = step - 10
+            while index < len(data) and index < step:
+                final.append(data[index])
+                index += 1
+            return final
 
 
 async def get_stats() -> tuple:

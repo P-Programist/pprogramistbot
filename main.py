@@ -40,6 +40,8 @@ from database.models import (
     Vacancy,
     VacancyApplicants,
     TestQuestions,
+    User,
+    WorldVacancy
 )
 
 student_vr = ('1624089338')
@@ -58,7 +60,27 @@ async def start(message: Message):
     The first function that the User interacts with.
     After the User pressed the /start command - he will be offered to choose a language for interaction.
     """
-
+    async with AsyncSession(engine, expire_on_commit=False) as session:
+        async with session.begin():
+            all_users_for_check = select(User.chat_id)
+            all_users_for_check = [i for i in await session.execute(all_users_for_check)]
+            if (message['from']['id'],) in all_users_for_check:
+                cmd = update(User).where(User.chat_id == message['from']['id']).values(
+                    {
+                        'current_page_on_vacancies':0
+                    }
+                )
+                await session.execute(cmd)
+                pass
+            else:
+                add_user = User(
+                    chat_id = message['from']['id'],
+                    username = message['from']['username'],
+                    first_name = message['from']['first_name'],
+                    last_name = message['from']['last_name']
+                )
+                session.add(add_user)
+        await session.commit()
     await message.answer(
         text="%s | %s"
         % (
@@ -523,21 +545,123 @@ async def vacancy_list(call: CallbackQuery):
 💻 Должность:  {text[0]}\n
 🕴 Работодатель: {text[5]}\n
 💲 Зарплата: {text[1]}\n\n
-        """, reply_markup=await ActiveVacancies(chat_id).more_for_vacancy(text[6]))) for text in vacancies_list]
 
-    await call.message.answer(
-        text=constants.SPEECH["back_to_vacancies" + lang],
-        reply_markup=await MainMenu(chat_id).step_back(),
-        parse_mode=ParseMode.MARKDOWN,
-    )
-    return await states.BotStates.more_detailed_vac.set()
+{text[2][:330]}...\n\n
+🧠 Требуемый опыт работы: {text[3]}\n
+🕙 Занятость: {text[4]}\n
+        """)) for text in vacancies_list]
+        await states.BotStates.local_vacancies.set()
+
+        return await call.message.answer(
+           text=constants.SPEECH["back_to_vacancies" + lang],
+           reply_markup=await MainMenu(chat_id).step_back(),
+           parse_mode=ParseMode.MARKDOWN)
+
+    elif call.data == 'foreign':
+        await call.message.edit_text(
+           text='Выберите ЯП:',
+           reply_markup=await ActiveVacancies(chat_id).choose_foreign_vacancies_type(),
+           parse_mode=ParseMode.MARKDOWN)
+
+        await states.BotStates.foreign_vacancies.set()
+
+    
 
 
-@dp.callback_query_handler(state=states.BotStates.more_detailed_vac)
-async def vacancy_more(call: CallbackQuery):
-    chat_id = call.message.chat.id
-    lang = await redworker.get_data(chat=chat_id)
+@dp.callback_query_handler(state=states.BotStates.foreign_vacancies)
+async def foreign_vacancy_list(call: CallbackQuery):
+    """
+    Вывод мировых вакансий по питону и джаваскрипту
+    """
+    lang = await redworker.get_data(chat=call.message.chat.id)
+    if call.data == 'back_to_vacancies':
+        await call.message.edit_text(
+                text=constants.SPEECH["vacancy_category" + lang],
+                reply_markup=await ActiveVacancies(call.message.chat.id).vacancies(),
+                parse_mode=ParseMode.MARKDOWN,
+            )
+        async with AsyncSession(engine, expire_on_commit=False) as session:
+            async with session.begin():
+                cmd = update(User).where(User.chat_id == call.message['chat']['id']).values(
+                        {
+                            'current_page_on_vacancies':0
+                        }
+                    )
+                await session.execute(cmd)
+            await session.commit()
+        return await states.BotStates.vacancy_categories.set()
 
+    elif call.data == 'more':
+        await bot.edit_message_reply_markup(chat_id = call.message.chat.id, message_id = call.message.message_id, reply_markup=None)
+        async with AsyncSession(engine, expire_on_commit=False) as session:
+            async with session.begin():
+                step = select(User.current_page_on_vacancies).where(User.chat_id == int(call.message['chat']['id']))
+                step = await session.execute(step)
+                step = step.fetchall()[0][0]
+                vacancies_list = await subfunctions.extract_world_vacancies('JavaScript', step)
+                if len(vacancies_list) >= 10:
+                    [(await call.message.answer(text=f"""
+    Вакансия: {text[0]}\n
+    Плата: {text[1]}\n
+    Тех. задание: {text[2][:350]}...\n
+    Тэги: {text[3]}\n
+    Дата заказа: {text[4][:10]} числа в {text[4][12:19]}\n
+    Ссылка на проект:{text[5]}
+            """)) for text in vacancies_list]
+                    
+                    cmd = update(User).where(User.chat_id == call.message['chat']['id']).values(
+                        {
+                            'current_page_on_vacancies':step+1
+                        }
+                    )
+                    await session.execute(cmd)
+                else:
+                    cmd = update(User).where(User.chat_id == call.message['chat']['id']).values(
+                        {
+                            'current_page_on_vacancies':0
+                        }
+                    )
+                    await session.execute(cmd)
+                    await call.message.answer(
+                            text='Вакансии закончились:(',
+                            reply_markup=await ActiveVacancies(call.message['chat']['id']).vacancies_are_over(),
+                            parse_mode=ParseMode.MARKDOWN)
+                    return await session.commit()
+
+
+        
+    elif call.data == 'javascript':
+        await bot.edit_message_reply_markup(chat_id = call.message.chat.id, message_id = call.message.message_id, reply_markup=None)
+        vacancies_list = await subfunctions.extract_world_vacancies('JavaScript')
+        [(await call.message.answer(text=f"""
+Вакансия: {text[0]}\n
+Плата: {text[1]}\n
+Тех. задание: {text[2][:350]}...\n
+Тэги: {text[3]}\n
+Дата заказа: {text[4][:10]} числа в {text[4][12:19]}\n
+Ссылка на проект:{text[5]}
+        """)) for text in vacancies_list]
+        
+
+    elif call.data == 'python':
+        await bot.edit_message_reply_markup(chat_id = call.message.chat.id, message_id = call.message.message_id, reply_markup=None)
+        vacancies_list = await subfunctions.extract_world_vacancies('Python')
+        [(await call.message.answer(text=f"""
+Вакансия: {text[0]}\n
+Плата: {text[1]}\n
+Тех. задание: {text[2][:350]}...\n
+Тэги: {text[3]}\n
+Дата заказа: {text[4][:10]} числа в {text[4][12:19]}\n
+Ссылка на проект:{text[5]}
+        """)) for text in vacancies_list]
+    
+
+    return await call.message.answer(
+           text='Еще вакансии:',
+           reply_markup=await ActiveVacancies(call.message['chat']['id']).more_vacancies(),
+           parse_mode=ParseMode.MARKDOWN)
+
+   
     if call.data == "back":
         await call.message.edit_text(
             text=constants.SPEECH["main_menu" + lang],
@@ -663,8 +787,10 @@ async def ask_github_link_for_vacancy(message: Message):
 
         await message.answer(
             text=constants.SPEECH["confirm_to_apply" +
-                                  lang], parse_mode=ParseMode.MARKDOWN
+                                lang], parse_mode=ParseMode.MARKDOWN
         )
+
+
 
         await message.answer(
             text=constants.SPEECH["confirm_number_text" + lang],

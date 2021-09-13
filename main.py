@@ -28,7 +28,7 @@ from buttons.inlines_buttons import (
 )
 from buttons.text_buttons import ConfirmNumber
 from configs import constants, states, subfunctions
-from configs.core import redworker, storage, point, question, check, time_trecker
+from configs.core import redworker, storage, point, question, check, time_trecker, about_company
 from database.settings import engine
 from database.models import (
     Course,
@@ -147,12 +147,9 @@ async def reception(call: CallbackQuery):
             return await states.BotStates.know_about_corses.set()
 
         if call.data == "about_company":
-            reception_id = getattr(Reception, "id")
-
-            reception = await subfunctions.object_exists(Reception, reception_id, 1)
-
+            reception = await about_company.get_data(chat='about_company'+lang)
             await call.message.edit_text(
-                text=reception.about_company_text,
+                text=reception,
                 reply_markup=await MainMenu(chat_id).step_back(),
                 parse_mode=ParseMode.MARKDOWN,
             )

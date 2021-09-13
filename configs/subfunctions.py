@@ -1,6 +1,5 @@
 import asyncio
 
-import aiogram
 from aiogram.types.callback_query import CallbackQuery
 
 from sqlalchemy.future import select
@@ -60,7 +59,7 @@ async def object_exists(model, attr_name, attr_value, *args):
 
 
 
-async def insert_object(model: object, data: dict, call: CallbackQuery):
+async def insert_object(model: object, data: dict):
     """
     The function accepts 3 arguments:
         1. Class | Model where data is supposed to be inserted to
@@ -143,24 +142,9 @@ async def extract_bishkek_vacancies() -> list:
             return data[:10]
 
 
-async def more_text(call, question_id):
-    '''There is MUST be Docstring'''
-    chat_id = call.message.chat.id
-
-    async with AsyncSession(engine, expire_on_commit=False) as session:
-        async with session.begin():
-            vacancy_list = select(BishkekVacancy.header, BishkekVacancy.salary, BishkekVacancy.details, BishkekVacancy.required_experience, BishkekVacancy.schedule, BishkekVacancy.company_name, BishkekVacancy.id).where(
-                BishkekVacancy.id == int(question_id[0])
-            )
-
-            lst = await session.execute(vacancy_list)
-
-            data = [i for i in lst.fetchall()]
-
-            return data[:10]
 
 
-async def extract_world_vacancies(type, step=0, call=None) -> tuple:
+async def extract_world_vacancies(type, step=0) -> list:
     """
     This function extracts data from the fields specified in «select» and displays the first 10 of them.
     Эта функция извлекает данные из полей, указанных в «select», и отображает первые 10 из них.
@@ -185,8 +169,8 @@ async def extract_world_vacancies(type, step=0, call=None) -> tuple:
             return final
 
 
-async def get_stats() -> tuple:
-    """There is MUST be Docstring"""
+async def get_stats() -> dict:
+    """Эта функция возвращает статистику нажатий по кнопкам в главном меню из таблицы Reception"""
     async with AsyncSession(engine, expire_on_commit=False) as session:
         async with session.begin():
 

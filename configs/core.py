@@ -61,15 +61,18 @@ check = RedisStorage2(
 feedback_data = RedisStorage2(
     host="127.0.0.1",
     db=6,
-    port = 6379, 
-    password = REDIS_PASSWORD
+    port=6379,
+    password=REDIS_PASSWORD
 )
 '''Таблица feedback_data хранит в себе данные пользователя, при этом созраняются они по этапно'''
 
 about_company = RedisStorage2(
     host='127.0.0.1',
     db=7,
-    port = 6379, 
-    password = REDIS_PASSWORD
+    port=6379,
+    password=REDIS_PASSWORD
 )
-'''Таблица feedback_data хранит в себе текст о компании'''
+"""
+Таблица about_company хранит в себе текст о компании в формате:
+{'about_company_ru' : text -> str, 'about_company_kg' : text -> str}
+"""

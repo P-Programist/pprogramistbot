@@ -59,9 +59,8 @@ class Scraper:
 
     def get_html(self, url) -> str:
         """
-        Функция, отвечающая за get-запросы
+        Функция, отвечающая за получение html-страниц 
         """
-        time.sleep(3)
         r = session.get(url)
         if r.status_code == 200:
             return r.text
@@ -91,9 +90,9 @@ class Scraper:
         """
         Эта функция возвращает уникальные фрагменты ссылки на подробное описание каждой вакансии
         """
-        descriptions = [i['href']
+        links = [i['href']
                         for i in content.find_all('a', class_='title-')]
-        return descriptions
+        return links
 
     def get_adresses(self, content) -> list:
         """
@@ -148,7 +147,7 @@ class Scraper:
             return 'Свободный график'
 
 
-class Filler(Scraper):
+class JobKGFiller(Scraper):
     """
     Это класс отвечает за приготовление информации для сохранения в БД
     и непосредственно за сохранение в БД
@@ -212,13 +211,14 @@ class Filler(Scraper):
         Сохранение в БД.
         (БД -- База Данных)
         """
+        harvested_data = self.get_data()
         async with engine.begin() as connection:
             cmd = delete(BishkekVacancy)
             await connection.execute(cmd)
 
         async with AsyncSession(engine, expire_on_commit=False) as session:
             async with session.begin():
-                for data in self.get_data():
+                for data in harvested_data:
                     if 'python' in data[5] or 'Python' in data[5]:
                         add_vacancy = insert(BishkekVacancy).values(
                             {
@@ -242,6 +242,7 @@ class Filler(Scraper):
                                 'salary': data[3],
                                 'schedule': data[4],
                                 'details': data[5],
+                                'link': data[6],
                                 'type': 'JavaScript'
                             }
                         )
@@ -251,9 +252,8 @@ class Filler(Scraper):
 
 
 if __name__ == "__main__":
-    filler = Filler(URL)
+    filler = JobKGFiller()
     loop = asyncio.get_event_loop()
     while True:
         loop.run_until_complete(filler.filling_database())
         time.sleep(3000)
-

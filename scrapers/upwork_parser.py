@@ -27,7 +27,7 @@ class Scraper:
 
     def get_html(self, url):
         """
-        Функция, отвечающая за get-запросы
+        Функция, отвечающая за получение html-страниц
         """
         time.sleep(10)
         print(f'Scraping from {url}...')
@@ -90,7 +90,7 @@ class Scraper:
         return [' '.join(['#'+i.replace(' ', '') for i in tag]) for tag in tags]
 
 
-class Filler(Scraper):
+class UpworkFiller(Scraper):
     """
     Это класс отвечает за приготовление информации для сохранения в БД
     и непосредственно за сохранение в БД
@@ -137,5 +137,10 @@ class Filler(Scraper):
         return 'Good job!'
 
 
-filler = Filler()
-asyncio.run(filler.filling_database())
+if __name__ == "__main__":
+    filler = UpworkFiller()
+    loop = asyncio.get_event_loop()
+    while True:
+        loop.run_until_complete(filler.filling_database())
+        print('сон')
+        time.sleep(120)

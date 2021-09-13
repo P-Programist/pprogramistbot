@@ -29,7 +29,7 @@ from buttons.inlines_buttons import (
 )
 from buttons.text_buttons import ConfirmNumber
 from configs import constants, states, subfunctions
-from configs.core import redworker, storage, point, check, time_question, feedback_data
+from configs.core import redworker, storage, point, check, time_question, feedback_data, about_company
 from database.settings import engine
 from database.models import (
     Course,
@@ -160,12 +160,9 @@ async def reception(call: CallbackQuery):
             return await states.BotStates.know_about_corses.set()
 
         if call.data == "about_company":
-            reception_id = getattr(Reception, "id")
-
-            reception = await subfunctions.object_exists(Reception, reception_id, 1)
-
+            reception = await about_company.get_data(chat='about_company'+lang)
             await call.message.edit_text(
-                text=reception.about_company_text,
+                text=reception,
                 reply_markup=await MainMenu(chat_id).step_back(),
                 parse_mode=ParseMode.MARKDOWN,
             )
@@ -396,8 +393,8 @@ async def complete_applying(message: Message):
             parse_mode=ParseMode.MARKDOWN,
         )
 
-        # with open(constants.WELCOME_TO_THE_CLUB_BUDDY, "rb") as video:
-        #     await message.answer_video(video=video)
+        with open(constants.WELCOME_TO_THE_CLUB_BUDDY, "rb") as video:
+            await message.answer_video(video=video)
 
         await message.answer(
             text=constants.SPEECH["main_menu" + lang],
@@ -551,6 +548,7 @@ async def vacancy_list(call: CallbackQuery):
 🕙 Занятость: {text[4]}\n
         """)) for text in vacancies_list]
         await states.BotStates.local_vacancies.set()
+        
 
         return await call.message.answer(
            text=constants.SPEECH["back_to_vacancies" + lang],
@@ -574,6 +572,7 @@ async def foreign_vacancy_list(call: CallbackQuery):
     Вывод мировых вакансий по питону и джаваскрипту
     """
     lang = await redworker.get_data(chat=call.message.chat.id)
+    chat_id=call.message.chat.id
     if call.data == 'back_to_vacancies':
         await call.message.edit_text(
                 text=constants.SPEECH["vacancy_category" + lang],
@@ -626,7 +625,7 @@ async def foreign_vacancy_list(call: CallbackQuery):
                             text='Вакансии закончились:(',
                             reply_markup=await ActiveVacancies(call.message['chat']['id']).vacancies_are_over(),
                             parse_mode=ParseMode.MARKDOWN)
-                    return await session.commit()
+                return await session.commit()
 
 
         
@@ -657,30 +656,11 @@ async def foreign_vacancy_list(call: CallbackQuery):
     
 
     return await call.message.answer(
-           text='Еще вакансии:',
-           reply_markup=await ActiveVacancies(call.message['chat']['id']).more_vacancies(),
-           parse_mode=ParseMode.MARKDOWN)
+        text='Еще вакансии:',
+        reply_markup=await ActiveVacancies(call.message['chat']['id']).more_vacancies(),
+        parse_mode=ParseMode.MARKDOWN)
 
    
-    if call.data == "back":
-        await call.message.edit_text(
-            text=constants.SPEECH["main_menu" + lang],
-            reply_markup=await MainMenu(chat_id).main_menu_buttons(str(chat_id) in student_vr),
-            parse_mode=ParseMode.MARKDOWN,
-        )
-
-        return await states.BotStates.main_menu.set()
-
-    else:
-        vacancies_more = await subfunctions.more_text(call, call.data)
-        [(await call.message.edit_text(text=f"""
-    💻 Должность:  {text[0]}\n
-    🕴 Работодатель: {text[5]}\n
-    💲 Зарплата: {text[1]}\n\n
-    {text[2][:330]}...\n\n
-    🧠 Требуемый опыт работы: {text[3]}\n
-    🕙 Занятость: {text[4]}\n
-            """)) for text in vacancies_more]
 
 
 @dp.callback_query_handler(state=states.BotStates.local_vacancies)
@@ -696,42 +676,7 @@ async def vacancies_list_provided(call: CallbackQuery):
         )
 
         return await states.BotStates.vacancy_categories.set()
-
-    chat_id_attr = getattr(VacancyApplicants, "chat_id")
-    applicant = await subfunctions.object_exists(
-        VacancyApplicants, chat_id_attr, chat_id
-    )
-
-    if applicant:
-        if applicant.phone_number:
-            await call.message.answer(
-                text=constants.SPEECH["already_applied_for_vacancy" + lang],
-                parse_mode=ParseMode.MARKDOWN,
-            )
-
-            await asyncio.sleep(1.5)
-
-            await call.message.answer(
-                text=constants.SPEECH["main_menu" + lang],
-                reply_markup=await MainMenu(chat_id).main_menu_buttons(str(chat_id) in student_vr),
-                parse_mode=ParseMode.MARKDOWN,
-            )
-
-            return await states.BotStates.main_menu.set()
-
-    data = {
-        "vacancy_id": int(call.data),
-        "chat_id": chat_id,
-    }
-
-    await subfunctions.insert_object(VacancyApplicants, data, call)
-
-    await call.message.answer(
-        text=constants.SPEECH["tell_me_full_name" +
-                              lang], parse_mode=ParseMode.MARKDOWN
-    )
-
-    return await states.BotStates.full_name_for_vacancy.set()
+    
 
 
 @dp.message_handler(

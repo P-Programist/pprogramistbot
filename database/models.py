@@ -1,6 +1,7 @@
 """The module is responsible for tables and relations betweeen them inside of the database."""
 # Standard library imports
 import datetime
+import asyncio
 
 # Third party imports
 from sqlalchemy import (
@@ -38,7 +39,10 @@ from configs.constants import (
     QUESTIONS,
 )
 
+from configs.core import about_company
+
 Base = declarative_base()
+
 
 
 class BaseModel(Base):
@@ -118,7 +122,11 @@ class Department(BaseModel):
     __tablename__ = "department"
 
     department_name = Column(
-        String, nullable=False, unique=True, comment="Programming language name"
+        String,
+        nullable=False,
+
+        unique=True,
+        comment='Programming language name'
     )
 
     customers = relationship("Customer", back_populates="department")
@@ -577,3 +585,6 @@ if __name__ == "__main__":
             await session.commit()
 
     asyncio.run(recreate_database())
+
+
+

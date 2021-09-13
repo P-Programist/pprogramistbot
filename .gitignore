@@ -2,10 +2,13 @@
 venv/
 __pycache__/
 static/
+venv
 
 constants.py
 Dockerfile
 ticket.txt
+test.py
 
 
 *.drawio
+*.sql

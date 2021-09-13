@@ -137,5 +137,10 @@ class Filler(Scraper):
         return 'Good job!'
 
 
-filler = Filler()
-asyncio.run(filler.filling_database())
+if __name__ == "__main__":
+    filler = Filler()
+    loop = asyncio.get_event_loop()
+    while True:
+        loop.run_until_complete(filler.filling_database())
+        time.sleep(420)
+
